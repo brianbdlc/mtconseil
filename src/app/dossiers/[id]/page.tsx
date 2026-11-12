@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditForm from "./EditForm";
@@ -8,6 +9,7 @@ export const instant = false;
 export default async function DossierPage({
   params,
 }: PageProps<"/dossiers/[id]">) {
+  await connection();
   const { id } = await params;
   const supabase = await createClient();
 
