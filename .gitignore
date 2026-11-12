@@ -46,3 +46,12 @@ next-env.d.ts
 
 # playwright-cli artifacts
 .playwright-cli/
+
+# Fichiers de verrouillage temporaires Word/Office
+~$*
+~$*.docx
+assets/~$*
+
+# Rapport de référence : peut contenir des données client (loi 25) — jamais versionné.
+# Seul assets/report-template.docx (gabarit nettoyé) est suivi.
+assets/modele.docx

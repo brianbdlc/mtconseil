@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -22,17 +21,7 @@ export default async function DossierPage({
   if (!data) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-6 py-8">
-      <Link
-        href="/dossiers"
-        className="text-sm text-n500 underline underline-offset-4"
-      >
-        ← Dossiers
-      </Link>
-      <h1 className="mt-4 font-display text-2xl font-bold text-navy">
-        {data.numero_projet?.trim() || "Dossier"}
-      </h1>
-
+    <div className="max-w-xl">
       <EditForm
         id={id}
         initial={{
@@ -42,6 +31,6 @@ export default async function DossierPage({
           type_service: data.type_service ?? "",
         }}
       />
-    </main>
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { TablesUpdate } from "@/lib/supabase/database.types";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -46,7 +47,7 @@ export async function updateDossier(
   values: Record<(typeof FIELDS)[number], string>,
 ) {
   const supabase = await createClient();
-  const patch: Record<string, string | null> = { updated_at: new Date().toISOString() };
+  const patch: TablesUpdate<"projects"> = { updated_at: new Date().toISOString() };
   for (const f of FIELDS) patch[f] = values[f]?.trim() || null;
 
   const { error } = await supabase.from("projects").update(patch).eq("id", id);
