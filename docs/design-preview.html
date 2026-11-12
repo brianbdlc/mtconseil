@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design System — MT Conseil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --amber:#F8B436; --amber-hover:#E09E1F; --amber-tint:#FEF3DC;
+  --navy:#142439; --navy-light:#223650;
+  --n0:#FFFFFF; --n50:#F6F7F9; --n100:#ECEEF2; --n200:#D7DCE3;
+  --n300:#AEB6C2; --n400:#6B7687; --n500:#3A4556; --n900:#142439; --black:#000;
+  --success:#1C7A52; --success-tint:#E2F2EA;
+  --warning:#B57E00; --warning-tint:#FEF3DC;
+  --error:#C0392B; --error-tint:#FBE9E7;
+  --info:#2B5B8C; --info-tint:#E4EEF6;
+  --r-sm:2px; --r-md:4px; --r-lg:6px;
+  --display:'Cabinet Grotesk',sans-serif;
+  --body:'Geist',sans-serif;
+  --mono:'Geist Mono',monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--body);color:var(--navy);background:var(--n50);
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:48px 24px}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:-0.01em;margin:0}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+section{margin-bottom:64px}
+.eyebrow{font-family:var(--mono);font-size:12px;text-transform:uppercase;
+  letter-spacing:0.12em;color:var(--n400);margin:0 0 8px}
+.sec-title{font-size:24px;margin-bottom:4px}
+.sec-sub{color:var(--n400);font-size:14px;margin:0 0 24px}
+.rule{height:1px;background:var(--n200);border:0;margin:0 0 32px}
+
+/* top banner */
+.banner{background:var(--navy);color:var(--n0);padding:40px 32px;border-radius:var(--r-lg);
+  margin-bottom:48px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.banner h1{color:var(--n0);font-size:40px;line-height:1}
+.banner .logo{display:flex;align-items:center;gap:12px}
+.banner .mark{width:28px;height:28px;background:var(--amber);border-radius:var(--r-sm)}
+.banner p{margin:12px 0 0;color:var(--n300);font-size:14px;max-width:420px}
+.banner .meta{font-family:var(--mono);font-size:12px;color:var(--amber);text-align:right}
+
+/* typo specimen */
+.specimen-hero{font-family:var(--display);font-weight:800;font-size:56px;line-height:1;
+  letter-spacing:-0.02em;margin:0 0 4px}
+.specimen-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;
+  letter-spacing:0.1em;color:var(--n400);margin:0 0 20px}
+.typo-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+@media(max-width:720px){.typo-grid{grid-template-columns:1fr}}
+.typo-grid p{font-size:16px;color:var(--n500);max-width:46ch}
+.scale-row{display:flex;align-items:baseline;gap:16px;border-bottom:1px solid var(--n100);padding:10px 0}
+.scale-row .px{font-family:var(--mono);font-size:11px;color:var(--n300);width:48px;flex:none}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;
+  letter-spacing:0.06em;color:var(--n400);text-align:left;padding:8px 12px;border-bottom:2px solid var(--navy)}
+td{padding:8px 12px;border-bottom:1px solid var(--n100)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.mono-block{font-family:var(--mono);font-size:13px;background:var(--navy);color:var(--n0);
+  padding:16px 18px;border-radius:var(--r-md);line-height:1.8}
+.mono-block .k{color:var(--amber)}
+.mono-block .c{color:var(--n300)}
+
+/* palette */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:40px}
+.sw{border:1px solid var(--n200);border-radius:var(--r-md);overflow:hidden;background:var(--n0)}
+.sw .chip{height:64px}
+.sw .info{padding:8px 10px}
+.sw .name{font-size:12px;font-weight:600}
+.sw .hex{font-family:var(--mono);font-size:11px;color:var(--n400)}
+
+.components{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:720px){.components{grid-template-columns:1fr}}
+.card{background:var(--n0);border:1px solid var(--n200);border-radius:var(--r-md);padding:20px}
+.card h3{font-size:16px;margin-bottom:16px}
+.btn{font-family:var(--body);font-weight:600;font-size:14px;padding:10px 18px;
+  border-radius:var(--r-md);border:1px solid transparent;cursor:pointer;min-height:44px}
+.btn-primary{background:var(--amber);color:var(--navy);border-color:var(--amber-hover)}
+.btn-primary:hover{background:var(--amber-hover)}
+.btn-secondary{background:var(--navy);color:var(--n0)}
+.btn-ghost{background:transparent;color:var(--navy);border-color:var(--n200)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+label.fld{display:block;font-size:12px;font-weight:600;color:var(--n500);margin:14px 0 6px}
+.input{width:100%;font-family:var(--body);font-size:14px;padding:10px 12px;
+  border:1px solid var(--n200);border-radius:var(--r-md);background:var(--n0);min-height:44px}
+.input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-tint)}
+.input.err{border-color:var(--error);box-shadow:0 0 0 3px var(--error-tint)}
+.err-msg{color:var(--error);font-size:12px;margin:6px 0 0}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);
+  font-size:13px;margin-bottom:10px;border-left:3px solid}
+.alert .dot{font-weight:700}
+.a-success{background:var(--success-tint);color:var(--success);border-color:var(--success)}
+.a-warning{background:var(--warning-tint);color:var(--warning);border-color:var(--amber)}
+.a-error{background:var(--error-tint);color:var(--error);border-color:var(--error)}
+.a-info{background:var(--info-tint);color:var(--info);border-color:var(--info)}
+
+/* status badges */
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:500;text-transform:uppercase;letter-spacing:0.04em;padding:3px 8px;border-radius:var(--r-sm)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%}
+.b-draft{background:var(--n100);color:var(--n500)}.b-draft::before{background:var(--n400)}
+.b-conf{background:var(--success-tint);color:var(--success)}.b-conf::before{background:var(--success)}
+.b-regen{background:var(--warning-tint);color:var(--warning)}.b-regen::before{background:var(--amber)}
+
+/* mockup app shell */
+.app{border:1px solid var(--n200);border-radius:var(--r-lg);overflow:hidden;
+  display:grid;grid-template-columns:200px 1fr;background:var(--n0);min-height:560px}
+@media(max-width:720px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+.sidebar{background:var(--navy);color:var(--n300);padding:20px 0}
+.sidebar .brand{display:flex;align-items:center;gap:8px;padding:0 20px 20px;
+  border-bottom:1px solid var(--navy-light);margin-bottom:12px}
+.sidebar .brand .mark{width:20px;height:20px;background:var(--amber);border-radius:var(--r-sm)}
+.sidebar .brand span{font-family:var(--display);font-weight:800;color:var(--n0);font-size:15px}
+.nav-proj{font-family:var(--mono);font-size:11px;color:var(--n400);padding:4px 20px 12px}
+.nav a{display:flex;justify-content:space-between;align-items:center;padding:9px 20px;
+  font-size:13px;color:var(--n300);text-decoration:none;border-left:3px solid transparent}
+.nav a.active{color:var(--n0);background:var(--navy-light);border-left-color:var(--amber)}
+.nav a .mini{font-family:var(--mono);font-size:10px;opacity:.7}
+.main{display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;
+  border-bottom:1px solid var(--n200)}
+.topbar .crumb{font-size:13px;color:var(--n400)}
+.topbar .crumb b{color:var(--navy);font-weight:600}
+.topbar .user{display:flex;align-items:center;gap:8px;font-size:13px}
+.topbar .avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--n0);
+  display:grid;place-items:center;font-size:11px;font-weight:600}
+.content{padding:24px;overflow:auto}
+.fiche-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.fiche-head h2{font-size:20px}
+.fiche-sec{font-family:var(--mono);font-size:12px;color:var(--amber);font-weight:500}
+.fiche-field{margin:16px 0}
+.fiche-field .lab{font-size:12px;font-weight:600;color:var(--n500);margin-bottom:6px}
+.fiche-field .val{background:var(--n50);border:1px solid var(--n100);border-radius:var(--r-sm);
+  padding:9px 12px;font-size:14px;color:var(--n500)}
+.tbl-head{display:flex;justify-content:space-between;align-items:baseline;margin:24px 0 8px}
+.tbl-head .t{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;
+  letter-spacing:0.08em;color:var(--navy)}
+.tbl-head .id{font-family:var(--mono);font-size:12px;color:var(--n400)}
+.tbl-head .id b{color:var(--navy)}
+.est-note{font-size:12px;color:var(--warning);margin:6px 0 0;font-style:italic}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}
+.photo{aspect-ratio:4/3;background:var(--n100);border:1px dashed var(--n300);border-radius:var(--r-sm);
+  display:grid;place-items:center;color:var(--n300);font-size:12px;font-family:var(--mono)}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  border-top:1px solid var(--n200);padding-top:20px;margin-top:8px;flex-wrap:wrap}
+.autosave{font-size:12px;color:var(--n400);display:flex;align-items:center;gap:6px}
+.autosave::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--success)}
+.foot{color:var(--n400);font-size:12px;text-align:center;padding-top:24px;border-top:1px solid var(--n200)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <div>
+      <div class="logo"><span class="mark"></span></div>
+      <h1>MT&nbsp;Conseil</h1>
+      <p>Outil de production de rapports d'audit énergétique. L'IA lit et rédige, le code calcule, l'humain confirme.</p>
+    </div>
+    <div class="meta">DESIGN SYSTEM<br>2026-11-11<br>sérieux · solide · carré</div>
+  </div>
+
+  <!-- SECTION 1 : TYPO -->
+  <section>
+    <p class="eyebrow">01 — Typographie</p>
+    <h2 class="sec-title">Trois rôles, deux familles</h2>
+    <p class="sec-sub">Cabinet Grotesk pour l'affichage, Geist pour le corps et les données, Geist Mono pour les valeurs techniques.</p>
+    <hr class="rule">
+
+    <div class="specimen-hero">Rapport d'audit énergétique</div>
+    <p class="specimen-label">Cabinet Grotesk 800 · Display / titres</p>
+
+    <div class="typo-grid">
+      <div>
+        <p class="specimen-label">Geist · Corps de texte</p>
+        <p>L'unité de toit dessert les zones de bureaux du deuxième étage. L'ingénieur documente le débit d'air, la capacité de refroidissement et l'efficacité de chauffage, puis confirme la fiche avant qu'elle n'alimente le reste du rapport. Rien n'est inventé : toute information manquante est signalée.</p>
+
+        <p class="specimen-label" style="margin-top:28px">Geist Mono · Valeurs techniques</p>
+        <div class="mono-block">
+          <span class="c"># dossier / équipement</span><br>
+          projet &nbsp;= <span class="k">P00412</span><br>
+          fiche &nbsp;&nbsp;= <span class="k">3.14</span><br>
+          id_unité = <span class="k">17-18-19</span><br>
+          débit &nbsp;&nbsp;= <span class="k">4 200 PCM*</span>
+        </div>
+      </div>
+
+      <div>
+        <p class="specimen-label">Échelle typographique</p>
+        <div class="scale-row"><span class="px">40</span><span style="font-family:var(--display);font-weight:800;font-size:40px">Titre</span></div>
+        <div class="scale-row"><span class="px">32</span><span style="font-family:var(--display);font-weight:800;font-size:32px">Section</span></div>
+        <div class="scale-row"><span class="px">24</span><span style="font-family:var(--display);font-weight:700;font-size:24px">Sous-section</span></div>
+        <div class="scale-row"><span class="px">20</span><span style="font-size:20px;font-weight:600">Sous-titre</span></div>
+        <div class="scale-row"><span class="px">16</span><span style="font-size:16px">Corps de texte</span></div>
+        <div class="scale-row"><span class="px">14</span><span style="font-size:14px">Dense / étiquettes</span></div>
+        <div class="scale-row"><span class="px">12</span><span style="font-size:12px">Légendes / tableaux</span></div>
+
+        <p class="specimen-label" style="margin-top:28px">Geist tabular-nums · Données</p>
+        <table class="tnum">
+          <thead><tr><th>Poste</th><th style="text-align:right">Valeur</th><th style="text-align:right">Coût (av.tx)</th></tr></thead>
+          <tbody>
+            <tr><td>Superficie brute</td><td class="num">74 134 pi²</td><td class="num">—</td></tr>
+            <tr><td>Gaz naturel</td><td class="num">1 284,6 GJ</td><td class="num">12 450,00 $</td></tr>
+            <tr><td>Électricité</td><td class="num">982 310 kWh</td><td class="num">68 912,50 $</td></tr>
+            <tr><td>Intensité</td><td class="num">1 142 MJ/m²</td><td class="num">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2 : PALETTE + COMPOSANTS -->
+  <section>
+    <p class="eyebrow">02 — Couleur &amp; composants</p>
+    <h2 class="sec-title">La couleur signale, ne décore jamais</h2>
+    <p class="sec-sub">Amber = « à faire ». Vert = « fait ». Rouge = « bloque l'export ». Navy porte toute la structure.</p>
+    <hr class="rule">
+
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#F8B436"></div><div class="info"><div class="name">Amber — primaire</div><div class="hex">#F8B436</div></div></div>
+      <div class="sw"><div class="chip" style="background:#142439"></div><div class="info"><div class="name">Navy — structure</div><div class="hex">#142439</div></div></div>
+      <div class="sw"><div class="chip" style="background:#1C7A52"></div><div class="info"><div class="name">Succès / confirmé</div><div class="hex">#1C7A52</div></div></div>
+      <div class="sw"><div class="chip" style="background:#C0392B"></div><div class="info"><div class="name">Erreur / bloquant</div><div class="hex">#C0392B</div></div></div>
+      <div class="sw"><div class="chip" style="background:#2B5B8C"></div><div class="info"><div class="name">Info</div><div class="hex">#2B5B8C</div></div></div>
+      <div class="sw"><div class="chip" style="background:#F6F7F9;border-bottom:1px solid #ECEEF2"></div><div class="info"><div class="name">Fond app</div><div class="hex">#F6F7F9</div></div></div>
+      <div class="sw"><div class="chip" style="background:#D7DCE3"></div><div class="info"><div class="name">Bordures</div><div class="hex">#D7DCE3</div></div></div>
+      <div class="sw"><div class="chip" style="background:#6B7687"></div><div class="info"><div class="name">Texte sec.</div><div class="hex">#6B7687</div></div></div>
+    </div>
+
+    <div class="components">
+      <div class="card">
+        <h3>Boutons &amp; états</h3>
+        <div class="btn-row">
+          <button class="btn btn-primary">Confirmer la fiche</button>
+          <button class="btn btn-secondary">Aperçu</button>
+          <button class="btn btn-ghost">Annuler</button>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge b-draft">brouillon</span>
+          <span class="badge b-conf">confirmé</span>
+          <span class="badge b-regen">à régénérer</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Champs</h3>
+        <label class="fld">Titre de la fiche</label>
+        <input class="input" value="Unité de toit — bureaux 2ᵉ étage">
+        <label class="fld">Débit d'air (PCM)</label>
+        <input class="input err" value="4 200">
+        <p class="err-msg">Le chiffre du texte diffère de la donnée du tableau 1.</p>
+      </div>
+
+      <div class="card" style="grid-column:1/-1">
+        <h3>Alertes de cohérence</h3>
+        <div class="alert a-success"><span class="dot">✓</span><div><b>Description du bâtiment confirmée.</b> Disponible pour la rédaction du sommaire du site.</div></div>
+        <div class="alert a-warning"><span class="dot">!</span><div><b>Données modifiées depuis la confirmation.</b> La section « Analyse du bilan » doit être reconfirmée avant l'export.</div></div>
+        <div class="alert a-error"><span class="dot">×</span><div><b>Total de 367 jours.</b> La somme des périodes de facturation dépasse 365/366 — à corriger.</div></div>
+        <div class="alert a-info" style="margin-bottom:0"><span class="dot">i</span><div>Conversion automatique : 12,3 t de refroidissement = 43,3 kW (1 t = 3,517 kW).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3 : MOCKUP FICHE -->
+  <section>
+    <p class="eyebrow">03 — Écran</p>
+    <h2 class="sec-title">Fiche d'équipement</h2>
+    <p class="sec-sub">L'artefact central du rapport. Gabarit fixe, tableaux fidèles, statut de confirmation, enregistrement automatique.</p>
+    <hr class="rule">
+
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand"><span class="mark"></span><span>MT&nbsp;Conseil</span></div>
+        <div class="nav-proj">P00412 · Hydro Bât.</div>
+        <nav class="nav">
+          <a href="#">Description du bâtiment <span class="mini">✓</span></a>
+          <a href="#" class="active">Fiches d'équipement <span class="mini">8</span></a>
+          <a href="#">Section 4 — Factures <span class="mini">!</span></a>
+          <a href="#">Annexe Optima <span class="mini">—</span></a>
+          <a href="#">Export du rapport</a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <div class="crumb">Fiches d'équipement&nbsp;/&nbsp;<b>Fiche 3.14</b></div>
+          <div class="user"><span>L. de la Cruz</span><span class="avatar">LC</span></div>
+        </div>
+
+        <div class="content">
+          <div class="fiche-head">
+            <div>
+              <span class="fiche-sec">Section 3.14</span>
+              <h2>Unité de toit</h2>
+            </div>
+            <span class="badge b-draft">brouillon</span>
+          </div>
+
+          <div class="fiche-field">
+            <div class="lab">Titre</div>
+            <div class="val">Unité de toit — desservant les bureaux du 2ᵉ étage</div>
+          </div>
+          <div class="fiche-field">
+            <div class="lab">Introduction</div>
+            <div class="val">Cette unité assure la ventilation et le conditionnement d'air des zones de bureaux…</div>
+          </div>
+
+          <div class="tbl-head">
+            <span class="t">Tableau 1 — Identification</span>
+            <span class="id">ID&nbsp;<b>17-18-19</b> · 3 unités identiques</span>
+          </div>
+          <table class="tnum">
+            <thead><tr><th>Description</th><th>Marque / modèle</th><th style="text-align:right">Débit (PCM)</th><th style="text-align:right">% air frais</th></tr></thead>
+            <tbody>
+              <tr><td>Unité de toit gaz/DX</td><td>Carrier 48TC</td><td class="num">4 200*</td><td class="num">20 %</td></tr>
+            </tbody>
+          </table>
+          <p class="est-note">* Débit estimé.</p>
+
+          <div class="tbl-head">
+            <span class="t">Tableau 2 — Capacités</span>
+            <span class="id">DX · EC · ELE · ER · GN</span>
+          </div>
+          <table class="tnum">
+            <thead><tr><th>Poste</th><th>Type</th><th style="text-align:right">Capacité</th><th style="text-align:right">Efficacité</th></tr></thead>
+            <tbody>
+              <tr><td>Refroidissement</td><td>DX</td><td class="num">12,3 t&nbsp;→&nbsp;43,3 kW</td><td class="num">—</td></tr>
+              <tr><td>Chauffage</td><td>GN</td><td class="num">88,0 kW</td><td class="num">81 %</td></tr>
+            </tbody>
+          </table>
+
+          <div class="photos">
+            <div class="photo">photo 1</div>
+            <div class="photo">photo 2</div>
+          </div>
+
+          <div class="actions">
+            <span class="autosave">Enregistré automatiquement</span>
+            <div class="btn-row">
+              <button class="btn btn-ghost">Aperçu</button>
+              <button class="btn btn-primary">Confirmer la fiche</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Design System MT Conseil · aperçu jetable · voir <span class="mono">docs/DESIGN.md</span> pour la source.</p>
+
+</div>
+</body>
+</html>
