@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 
@@ -11,7 +12,8 @@ type Row = {
   createur: { email: string | null } | null;
 };
 
-// Toujours dynamique : lit la session (cookies) à chaque requête.
+// Route dynamique (session par requête) : pas de prérendu. connection() marque
+// l'accès runtime, instant=false autorise la route bloquante au build.
 export const instant = false;
 
 function afficher(v: string | null) {
@@ -19,6 +21,7 @@ function afficher(v: string | null) {
 }
 
 export default async function DossiersPage() {
+  await connection(); // rendu à la requête : lit la session (cookies/Date.now).
   const supabase = await createClient();
 
   const {

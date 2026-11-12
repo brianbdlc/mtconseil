@@ -16,16 +16,20 @@ export function useAutosave<T>(
 ) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const saveRef = useRef(save);
-  const first = useRef(true);
+  // Dernière valeur en base : initialisée à la valeur de montage (déjà persistée).
+  // Évite d'enregistrer au montage, les écritures redondantes, et le double-effet
+  // de StrictMode en dev.
+  const lastSaved = useRef(JSON.stringify(value));
 
   useEffect(() => {
     saveRef.current = save;
   }, [save]);
 
-  const run = useCallback(async (v: T) => {
+  const run = useCallback(async (v: T, serialized: string) => {
     setStatus("saving");
     try {
       await saveRef.current(v);
+      lastSaved.current = serialized;
       setStatus("saved");
     } catch {
       setStatus("error");
@@ -33,12 +37,9 @@ export function useAutosave<T>(
   }, []);
 
   useEffect(() => {
-    // Ne pas enregistrer au montage (valeur initiale déjà en base).
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    const id = setTimeout(() => run(value), delay);
+    const serialized = JSON.stringify(value);
+    if (serialized === lastSaved.current) return;
+    const id = setTimeout(() => run(value, serialized), delay);
     return () => clearTimeout(id);
   }, [value, delay, run]);
 

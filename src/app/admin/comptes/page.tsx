@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CreateForm from "./CreateForm";
@@ -8,6 +9,7 @@ type Compte = { id: string; email: string | null; role: string };
 export const instant = false;
 
 export default async function ComptesPage() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },
