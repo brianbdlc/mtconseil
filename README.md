@@ -1,4 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Outil interne MT Conseil — production de rapports d'audit énergétique (Next.js + Supabase).
+
+## Configuration
+
+1. Copier `.env.example` vers `.env.local` et remplir les 3 variables.
+   - `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` : déjà fournies (projet DEV).
+   - `SUPABASE_SECRET_KEY` : clé secret (`sb_secret_…`), dashboard Supabase > Project Settings > API keys. **Serveur uniquement**, requise pour créer des comptes.
+
+## Bootstrap du premier admin (Luis)
+
+Aucune inscription libre (`enable_signup = false`). Le premier compte admin se crée à la main :
+
+1. Dashboard Supabase > Authentication > Add user → créer le compte de Luis (email + mot de passe).
+2. Mettre l'email de Luis dans `supabase/seed.sql`, puis exécuter ce SQL sur le projet (dashboard SQL editor ou `supabase db reset` en local). Il crée la ligne `profiles` et la passe en `role = 'admin'`.
+3. Luis peut ensuite créer les autres comptes depuis `/admin/comptes`.
 
 ## Getting Started
 
