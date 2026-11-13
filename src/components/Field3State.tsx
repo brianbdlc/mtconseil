@@ -24,7 +24,7 @@ export default function Field3State({
 }) {
   const saisie = value.etat === "valeur";
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5" data-field={label}>
       <span className="text-sm font-medium text-navy">{label}</span>
       <div className="flex items-stretch gap-2">
         <input

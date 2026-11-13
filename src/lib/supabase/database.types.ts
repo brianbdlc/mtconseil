@@ -12,41 +12,212 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      equipment_cards: {
+      card_photos: {
         Row: {
+          card_id: string
           created_at: string
-          fields: Json
           id: string
-          intro: string | null
           position: number
-          project_id: string
-          statut: string
+          storage_path: string
           titre: string | null
-          updated_at: string
         }
         Insert: {
+          card_id: string
           created_at?: string
-          fields?: Json
           id?: string
-          intro?: string | null
           position?: number
-          project_id: string
-          statut?: string
+          storage_path: string
           titre?: string | null
-          updated_at?: string
         }
         Update: {
+          card_id?: string
           created_at?: string
+          id?: string
+          position?: number
+          storage_path?: string
+          titre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_photos_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_cards: {
+        Row: {
+          chauffage: string | null
+          chauffage_etat: string
+          created_at: string
+          debit_pcm: string | null
+          debit_pcm_estime: boolean
+          debit_pcm_etat: string
+          description: string | null
+          description_etat: string
+          fields: Json
+          humidificateur: string | null
+          humidificateur_etat: string
+          id: string
+          intro: string | null
+          marque_modele: string | null
+          marque_modele_etat: string
+          nb_unites: number
+          note_estime: string | null
+          pct_air_frais: string | null
+          pct_air_frais_etat: string
+          position: number
+          project_id: string
+          refroidissement: string | null
+          refroidissement_etat: string
+          statut: string
+          t2_chauff_eff: string | null
+          t2_chauff_eff_estime: boolean
+          t2_chauff_eff_etat: string
+          t2_chauff_kw: string | null
+          t2_chauff_kw_etat: string
+          t2_chauff_kw_manuel: boolean
+          t2_chauff_tonnes: string | null
+          t2_chauff_type: string | null
+          t2_chauff_type_etat: string
+          t2_refroid_eff: string | null
+          t2_refroid_eff_estime: boolean
+          t2_refroid_eff_etat: string
+          t2_refroid_kw: string | null
+          t2_refroid_kw_etat: string
+          t2_refroid_kw_manuel: boolean
+          t2_refroid_tonnes: string | null
+          t2_refroid_type: string | null
+          t2_refroid_type_etat: string
+          titre: string | null
+          updated_at: string
+          ventilateur: string | null
+          ventilateur_etat: string
+        }
+        Insert: {
+          chauffage?: string | null
+          chauffage_etat?: string
+          created_at?: string
+          debit_pcm?: string | null
+          debit_pcm_estime?: boolean
+          debit_pcm_etat?: string
+          description?: string | null
+          description_etat?: string
           fields?: Json
+          humidificateur?: string | null
+          humidificateur_etat?: string
           id?: string
           intro?: string | null
+          marque_modele?: string | null
+          marque_modele_etat?: string
+          nb_unites?: number
+          note_estime?: string | null
+          pct_air_frais?: string | null
+          pct_air_frais_etat?: string
           position?: number
-          project_id?: string
+          project_id: string
+          refroidissement?: string | null
+          refroidissement_etat?: string
           statut?: string
+          t2_chauff_eff?: string | null
+          t2_chauff_eff_estime?: boolean
+          t2_chauff_eff_etat?: string
+          t2_chauff_kw?: string | null
+          t2_chauff_kw_etat?: string
+          t2_chauff_kw_manuel?: boolean
+          t2_chauff_tonnes?: string | null
+          t2_chauff_type?: string | null
+          t2_chauff_type_etat?: string
+          t2_refroid_eff?: string | null
+          t2_refroid_eff_estime?: boolean
+          t2_refroid_eff_etat?: string
+          t2_refroid_kw?: string | null
+          t2_refroid_kw_etat?: string
+          t2_refroid_kw_manuel?: boolean
+          t2_refroid_tonnes?: string | null
+          t2_refroid_type?: string | null
+          t2_refroid_type_etat?: string
           titre?: string | null
           updated_at?: string
+          ventilateur?: string | null
+          ventilateur_etat?: string
+        }
+        Update: {
+          chauffage?: string | null
+          chauffage_etat?: string
+          created_at?: string
+          debit_pcm?: string | null
+          debit_pcm_estime?: boolean
+          debit_pcm_etat?: string
+          description?: string | null
+          description_etat?: string
+          fields?: Json
+          humidificateur?: string | null
+          humidificateur_etat?: string
+          id?: string
+          intro?: string | null
+          marque_modele?: string | null
+          marque_modele_etat?: string
+          nb_unites?: number
+          note_estime?: string | null
+          pct_air_frais?: string | null
+          pct_air_frais_etat?: string
+          position?: number
+          project_id?: string
+          refroidissement?: string | null
+          refroidissement_etat?: string
+          statut?: string
+          t2_chauff_eff?: string | null
+          t2_chauff_eff_estime?: boolean
+          t2_chauff_eff_etat?: string
+          t2_chauff_kw?: string | null
+          t2_chauff_kw_etat?: string
+          t2_chauff_kw_manuel?: boolean
+          t2_chauff_tonnes?: string | null
+          t2_chauff_type?: string | null
+          t2_chauff_type_etat?: string
+          t2_refroid_eff?: string | null
+          t2_refroid_eff_estime?: boolean
+          t2_refroid_eff_etat?: string
+          t2_refroid_kw?: string | null
+          t2_refroid_kw_etat?: string
+          t2_refroid_kw_manuel?: boolean
+          t2_refroid_tonnes?: string | null
+          t2_refroid_type?: string | null
+          t2_refroid_type_etat?: string
+          titre?: string | null
+          updated_at?: string
+          ventilateur?: string | null
+          ventilateur_etat?: string
         }
         Relationships: [
           {
@@ -254,6 +425,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
