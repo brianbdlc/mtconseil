@@ -29,12 +29,32 @@ export async function GET(
 
   const { data: cards } = await supabase
     .from("equipment_cards")
-    .select("titre, intro, fields")
+    .select("*")
     .eq("project_id", id)
     .eq("statut", "confirme")
     .order("position", { ascending: true });
 
-  const buffer = await buildReport(project, cards ?? []);
+  // Photos (US-15) : téléchargées côté serveur depuis Storage, dans l'ordre, par fiche.
+  const reportCards = await Promise.all(
+    (cards ?? []).map(async (c) => {
+      const { data: rows } = await supabase
+        .from("card_photos")
+        .select("storage_path, titre")
+        .eq("card_id", c.id)
+        .order("position", { ascending: true });
+      const photos = [];
+      for (const r of rows ?? []) {
+        const { data: blob } = await supabase.storage
+          .from("equipment-photos")
+          .download(r.storage_path);
+        if (blob)
+          photos.push({ data: Buffer.from(await blob.arrayBuffer()), titre: r.titre });
+      }
+      return { titre: c.titre, intro: c.intro, row: c, photos };
+    }),
+  );
+
+  const buffer = await buildReport(project, reportCards);
   const nom = `${project.numero_projet?.trim() || "rapport"}.docx`;
 
   return new Response(new Uint8Array(buffer), {

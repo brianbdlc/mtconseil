@@ -55,3 +55,15 @@ assets/~$*
 # Rapport de référence : peut contenir des données client (loi 25) — jamais versionné.
 # Seul assets/report-template.docx (gabarit nettoyé) est suivi.
 assets/modele.docx
+# Idem : modèle + captures de fiches réelles (données client) utilisés pour calibrer
+# l'export, jamais versionnés.
+docs/reference/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+tests/e2e/.auth/
+
+# docx render verification output
+scripts/out/

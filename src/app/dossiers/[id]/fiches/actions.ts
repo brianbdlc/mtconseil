@@ -3,7 +3,25 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/supabase/database.types";
+import type { TablesUpdate } from "@/lib/supabase/database.types";
+
+// Payload d'édition d'une fiche : titre/intro + colonnes tableau 1/2 + `fields` listes
+// (produit par toCardColumns côté client).
+type CardPayload = {
+  titre: string;
+  intro: string;
+  columns: Record<string, unknown>;
+};
+
+function cardUpdate(p: CardPayload, statut: "brouillon" | "confirme") {
+  return {
+    ...(p.columns as TablesUpdate<"equipment_cards">),
+    titre: p.titre.trim() || null,
+    intro: p.intro.trim() || null,
+    statut,
+    updated_at: new Date().toISOString(),
+  };
+}
 
 async function client() {
   const supabase = await createClient();
@@ -40,18 +58,12 @@ export async function addCard(projectId: string) {
 export async function updateCard(
   cardId: string,
   projectId: string,
-  values: { titre: string; intro: string; fields: Json },
+  values: CardPayload,
 ) {
   const supabase = await client();
   const { error } = await supabase
     .from("equipment_cards")
-    .update({
-      titre: values.titre.trim() || null,
-      intro: values.intro.trim() || null,
-      fields: values.fields,
-      statut: "brouillon",
-      updated_at: new Date().toISOString(),
-    })
+    .update(cardUpdate(values, "brouillon"))
     .eq("id", cardId);
   if (error) throw error;
   revalidatePath(`/dossiers/${projectId}/fiches`);
@@ -64,18 +76,12 @@ export async function updateCard(
 export async function confirmCard(
   cardId: string,
   projectId: string,
-  values: { titre: string; intro: string; fields: Json },
+  values: CardPayload,
 ) {
   const supabase = await client();
   const { error } = await supabase
     .from("equipment_cards")
-    .update({
-      titre: values.titre.trim() || null,
-      intro: values.intro.trim() || null,
-      fields: values.fields,
-      statut: "confirme",
-      updated_at: new Date().toISOString(),
-    })
+    .update(cardUpdate(values, "confirme"))
     .eq("id", cardId);
   if (error) throw error;
   revalidatePath(`/dossiers/${projectId}/fiches`);
@@ -119,6 +125,67 @@ export async function moveCard(
   const b = cards[swap];
   await supabase.from("equipment_cards").update({ position: b.position }).eq("id", a.id);
   await supabase.from("equipment_cards").update({ position: a.position }).eq("id", b.id);
+  revalidatePath(`/dossiers/${projectId}/fiches`);
+}
+
+const PHOTOS_BUCKET = "equipment-photos";
+
+// Photos (US-15). L'upload du fichier se fait côté client (storage) ; ici on tient la
+// table card_photos (métadonnées + ordre). 1-6 par fiche contrôlé côté UI + garde ici.
+export async function addPhoto(
+  cardId: string,
+  projectId: string,
+  storagePath: string,
+) {
+  const supabase = await client();
+  const { data: rows } = await supabase
+    .from("card_photos")
+    .select("position")
+    .eq("card_id", cardId);
+  if ((rows?.length ?? 0) >= 6) throw new Error("Maximum 6 photos par fiche");
+  const next = Math.max(-1, ...(rows ?? []).map((r) => r.position)) + 1;
+
+  const { error } = await supabase
+    .from("card_photos")
+    .insert({ card_id: cardId, storage_path: storagePath, position: next });
+  if (error) throw error;
+  revalidatePath(`/dossiers/${projectId}/fiches`);
+}
+
+export async function updatePhotoTitle(
+  photoId: string,
+  projectId: string,
+  titre: string,
+) {
+  const supabase = await client();
+  const { error } = await supabase
+    .from("card_photos")
+    .update({ titre: titre.trim() || null })
+    .eq("id", photoId);
+  if (error) throw error;
+  revalidatePath(`/dossiers/${projectId}/fiches`);
+}
+
+export async function deletePhoto(
+  photoId: string,
+  projectId: string,
+  storagePath: string,
+) {
+  const supabase = await client();
+  await supabase.storage.from(PHOTOS_BUCKET).remove([storagePath]);
+  const { error } = await supabase.from("card_photos").delete().eq("id", photoId);
+  if (error) throw error;
+  revalidatePath(`/dossiers/${projectId}/fiches`);
+}
+
+// Réordonne par glisser-déposer : position = rang dans la liste fournie (US-15).
+export async function reorderPhotos(projectId: string, orderedIds: string[]) {
+  const supabase = await client();
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase.from("card_photos").update({ position: i }).eq("id", id),
+    ),
+  );
   revalidatePath(`/dossiers/${projectId}/fiches`);
 }
 

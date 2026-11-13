@@ -1,9 +1,9 @@
 // Self-check export, sans framework : `node src/lib/docx/report.test.ts` (depuis la racine).
-// Scénario demandé : fiche confirmée → rouverte → champ modifié → re-confirmée ;
-// on vérifie que la VALEUR MODIFIÉE (pas l'ancienne) sort dans le .docx, que les
-// brouillons sont exclus, qu'il y a un saut de page par fiche et que « - » n'a pas
-// d'espace parasite. La glue docx ci-dessous reflète src/lib/docx/report.ts (à garder
-// en phase) ; la logique d'affichage `afficher` est importée réelle, pas répliquée.
+// Scénario : fiche confirmée dont la description a été MODIFIÉE sort bien la valeur
+// modifiée ; une fiche brouillon (non transmise ici) n'apparaît pas ; saut de page par
+// fiche ; « - » (refroidissement sans objet, règle tableau 1 → 2) rendu sans espace
+// parasite. La glue docx reflète src/lib/docx/report.ts ; parseCardFields/afficher/
+// idLabels sont importés réels (pas de path alias → imports relatifs).
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -12,7 +12,8 @@ import { execSync } from "node:child_process";
 import {
   patchDocument, PatchType, TextRun, Paragraph, Table, TableRow, TableCell, WidthType,
 } from "docx";
-import { afficher, type CardFields } from "../field.ts";
+import { afficher, parseCardFields, type CardFields, type Ligne2 } from "../field.ts";
+import { idLabels } from "../equipmentId.ts";
 
 const TEMPLATE = path.join(process.cwd(), "assets", "report-template.docx");
 if (!fs.existsSync(TEMPLATE)) {
@@ -20,34 +21,46 @@ if (!fs.existsSync(TEMPLATE)) {
   process.exit(0);
 }
 
-const kvRow = (label: string, value: string) =>
+const cell = (t: string) =>
+  new TableCell({ children: [new Paragraph({ children: [new TextRun(t)] })] });
+const ligne2 = (label: string, l: Ligne2, so: boolean) =>
   new TableRow({
-    children: [
-      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: label, bold: true })] })] }),
-      new TableCell({ children: [new Paragraph(value)] }),
-    ],
+    children: [cell(label), cell(so ? "-" : afficher(l.type)), cell(so ? "-" : afficher(l.kw)), cell(so ? "-" : afficher(l.eff))],
   });
-const ficheBlocks = (cards: { titre: string; intro: string; fields: CardFields }[]) => {
+
+const ficheBlocks = (cards: { titre: string; row: unknown }[]) => {
+  const parsed = cards.map((c) => parseCardFields(c.row));
+  const labels = idLabels(parsed);
   const out: (Paragraph | Table)[] = [];
   cards.forEach((c, i) => {
+    const f: CardFields = parsed[i];
     out.push(new Paragraph({ style: "Titre2", pageBreakBefore: true, children: [new TextRun(c.titre?.trim() || "Sans titre")] }));
-    if (c.intro?.trim()) out.push(new Paragraph({ style: "Corpsdetexte", children: [new TextRun(c.intro)] }));
     out.push(new Table({
       style: "Grilledutableau",
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [kvRow("ID", String(i + 1)), kvRow("Description", afficher(c.fields.description)), kvRow("Marque / modèle", afficher(c.fields.marque_modele))],
+      rows: [
+        new TableRow({ children: [cell("ID"), cell("Description")] }),
+        new TableRow({ children: [cell(labels[i]), cell(afficher(f.description))] }),
+      ],
     }));
-    out.push(new Paragraph({ children: [] }));
+    out.push(new Table({
+      style: "Grilledutableau",
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [ligne2("Refroidissement", f.refroid, f.refroidissement.etat === "so")],
+    }));
   });
   return out;
 };
 
 const MODIFIE = "DESC_MODIFIEE_XZ";
 const BROUILLON = "FICHE_BROUILLON_EXCLUE_XZ";
-// La route ne passe que les fiches confirmées ; la fiche re-confirmée porte la valeur
-// modifiée, la brouillon n'est pas transmise.
+// La route ne passe que les fiches confirmées : description = valeur modifiée,
+// refroidissement « sans objet » → ligne tableau 2 « - ».
 const confirmees = [
-  { titre: "Fiche A", intro: "", fields: { description: { valeur: MODIFIE, etat: "valeur" }, marque_modele: { valeur: "", etat: "so" } } as CardFields },
+  {
+    titre: "Fiche A",
+    row: { description: MODIFIE, description_etat: "valeur", refroidissement_etat: "so", nb_unites: 1, fields: {} },
+  },
 ];
 
 const txt = (v: string | null) => ({ type: PatchType.PARAGRAPH, children: [new TextRun((v || "").trim())] });

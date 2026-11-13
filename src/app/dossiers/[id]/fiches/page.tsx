@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import StatutBadge from "@/components/StatutBadge";
+import { idLabels } from "@/lib/equipmentId";
 import { addCard, moveCard } from "./actions";
 
 export const instant = false;
@@ -15,9 +16,11 @@ export default async function FichesPage({
 
   const { data: cards } = await supabase
     .from("equipment_cards")
-    .select("id, titre, statut, position")
+    .select("id, titre, statut, position, nb_unites")
     .eq("project_id", id)
     .order("position", { ascending: true });
+
+  const ids = idLabels(cards ?? []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,7 +46,7 @@ export default async function FichesPage({
         <ul className="divide-y divide-n200 rounded-md border border-n200 bg-n0">
           {cards.map((c, i) => (
             <li key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-n50">
-              {/* N° section 3.x calculé à l'affichage selon l'ordre (R8). */}
+              {/* N° section 3.x + ID (plage) calculés à l'affichage selon l'ordre (R8). */}
               <span className="font-mono text-sm text-n500">3.{i + 1}</span>
               <Link
                 href={`/dossiers/${id}/fiches/${c.id}`}
@@ -53,6 +56,7 @@ export default async function FichesPage({
                   <span className="text-n500 italic">Sans titre</span>
                 )}
               </Link>
+              <span className="font-mono text-xs text-n500">ID {ids[i]}</span>
               <StatutBadge statut={c.statut} />
               <div className="flex">
                 <form action={moveCard.bind(null, c.id, id, "up")}>
