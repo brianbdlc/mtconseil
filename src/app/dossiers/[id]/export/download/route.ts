@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { createClient } from "@/lib/supabase/server";
+import { buildingPhotos } from "@/lib/building";
 import { buildReport, TEMPLATE_PATH } from "@/lib/docx/report";
 
 export async function GET(
@@ -34,6 +35,24 @@ export async function GET(
     .eq("statut", "confirme")
     .order("position", { ascending: true });
 
+  // Description du bâtiment (Phase 4) : seulement si confirmée → sinon section vide.
+  const { data: buildingRow } = await supabase
+    .from("building_description")
+    .select("*")
+    .eq("project_id", id)
+    .eq("statut", "confirme")
+    .maybeSingle();
+
+  let building = null;
+  if (buildingRow) {
+    const photos = [];
+    for (const { path, titre } of buildingPhotos(buildingRow)) {
+      const { data: blob } = await supabase.storage.from("equipment-photos").download(path);
+      if (blob) photos.push({ data: Buffer.from(await blob.arrayBuffer()), titre: titre || null });
+    }
+    building = { row: buildingRow, photos };
+  }
+
   // Photos (US-15) : téléchargées côté serveur depuis Storage, dans l'ordre, par fiche.
   const reportCards = await Promise.all(
     (cards ?? []).map(async (c) => {
@@ -54,7 +73,7 @@ export async function GET(
     }),
   );
 
-  const buffer = await buildReport(project, reportCards);
+  const buffer = await buildReport(project, reportCards, building);
   const nom = `${project.numero_projet?.trim() || "rapport"}.docx`;
 
   return new Response(new Uint8Array(buffer), {

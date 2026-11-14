@@ -15,8 +15,15 @@ export default async function ExportPage({
     .select("statut")
     .eq("project_id", id);
 
+  const { data: building } = await supabase
+    .from("building_description")
+    .select("statut")
+    .eq("project_id", id)
+    .maybeSingle();
+
   const confirmees = cards?.filter((c) => c.statut === "confirme").length ?? 0;
   const brouillons = (cards?.length ?? 0) - confirmees;
+  const descriptionConfirmee = building?.statut === "confirme";
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
@@ -26,6 +33,11 @@ export default async function ExportPage({
 
       {/* Checklist légère (la checklist complète = Phase 10). */}
       <ul className="flex flex-col gap-1.5 text-sm text-navy">
+        <li className={descriptionConfirmee ? "" : "text-warning"}>
+          {descriptionConfirmee
+            ? "Description du bâtiment confirmée — incluse au rapport."
+            : "Description du bâtiment non confirmée — section vide à l'export."}
+        </li>
         <li>
           <span className="font-medium">{confirmees}</span> fiche
           {confirmees > 1 ? "s" : ""} confirmée{confirmees > 1 ? "s" : ""} —

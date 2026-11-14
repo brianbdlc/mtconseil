@@ -32,6 +32,7 @@ import {
   type ITableBordersOptions,
 } from "docx";
 import { afficher, parseCardFields, type CardFields, type Field, type Ligne2 } from "@/lib/field";
+import { parseBuildingRow, type BuildingFields } from "@/lib/building";
 import { idLabels } from "@/lib/equipmentId";
 import { imageSize } from "./imageSize";
 
@@ -70,6 +71,10 @@ export type ReportCard = {
   intro: string | null;
   row: unknown; // ligne equipment_cards complète (colonnes + fields)
   photos: ReportPhoto[];
+};
+export type ReportBuilding = {
+  row: unknown; // ligne building_description (colonnes + fields)
+  photos: ReportPhoto[]; // Figure 1+ (max 4, ordre d'affichage)
 };
 
 // --- Paragraphes / cellules (une source par élément) ------------------------
@@ -344,9 +349,93 @@ function ficheBlocks(cards: ReportCard[]): (Paragraph | Table)[] {
   return out;
 }
 
+// --- Description du bâtiment (Phase 4) --------------------------------------
+
+// Paragraphe de corps au style du gabarit (Corpsdetexte), « Label : valeur ».
+function champPara(label: string, f: Field): Paragraph {
+  return new Paragraph({
+    style: "Corpsdetexte",
+    children: [new TextRun({ text: `${label} : `, bold: true }), new TextRun(afficher(f))],
+  });
+}
+function sousTitre(text: string): Paragraph {
+  return new Paragraph({ style: "Corpsdetexte", children: [new TextRun({ text, bold: true })] });
+}
+
+// Tableau des zones (US-18) : en-tête gris + une ligne par zone, cellules texte simple.
+const WZ = [3000, 2000, 1500, 3018]; // somme = 9518
+function zonesTable(bf: BuildingFields): Table {
+  const head = ["Zone", "Superficie (pi²)", "Étages", "Usage"];
+  const cell = (v: string) => bodyCell(v.trim() || "n/d", { center: false });
+  return new Table({
+    columnWidths: WZ,
+    width: { size: CONTENT_DXA, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    borders: H_BORDERS,
+    rows: [
+      new TableRow({ tableHeader: true, children: head.map((h, i) => headCell(h, WZ[i])) }),
+      ...bf.zones.map(
+        (z) =>
+          new TableRow({
+            children: [cell(z.nom), cell(z.superficie), cell(z.etages), cell(z.usage)],
+          }),
+      ),
+    ],
+  });
+}
+
+function descriptionBlocks(building: ReportBuilding): (Paragraph | Table)[] {
+  const bf = parseBuildingRow(building.row);
+  const out: (Paragraph | Table)[] = [];
+
+  out.push(sousTitre("Le bâtiment"));
+  out.push(champPara("Superficie brute totale (pi²)", bf.superficie_brute_totale));
+  out.push(champPara("Année de construction", bf.annee_construction));
+  out.push(champPara("Nombre d'étages", bf.nombre_etages));
+  out.push(champPara("Type de construction", bf.type_construction));
+  out.push(champPara("Usage principal", bf.usage_principal));
+  for (const a of bf.autres_batiment)
+    out.push(
+      new Paragraph({
+        style: "Corpsdetexte",
+        children: [
+          new TextRun({ text: `${a.titre.trim() || "Autre"} : `, bold: true }),
+          new TextRun(`${a.valeur.trim() || "n/d"}${a.unite.trim() ? ` ${a.unite.trim()}` : ""}`),
+        ],
+      }),
+    );
+
+  if (bf.zones.length) {
+    out.push(sousTitre("Zones"), zonesTable(bf), spacer());
+    if (bf.ecart_note.trim())
+      out.push(new Paragraph({ style: "Corpsdetexte", children: [new TextRun({ text: bf.ecart_note, italics: true })] }));
+  }
+
+  out.push(sousTitre("Alimentation en énergie"));
+  out.push(champPara("Électricité", bf.elec));
+  out.push(champPara("Gaz", bf.gaz));
+  for (const a of bf.autres_energie)
+    out.push(
+      new Paragraph({
+        style: "Corpsdetexte",
+        children: [
+          new TextRun({ text: `${a.titre.trim() || "Autre"} : `, bold: true }),
+          new TextRun(`${a.valeur.trim() || "n/d"}${a.unite.trim() ? ` ${a.unite.trim()}` : ""}`),
+        ],
+      }),
+    );
+
+  // Photos du bâtiment + légendes « Figure N : » (1res figures du flux, numérotées par le
+  // style TITREFIGURES, numId 8). Grille 2 par rangée, comme les photos d'équipement.
+  if (building.photos.length) out.push(spacer(), photosTable(building.photos));
+
+  return out;
+}
+
 export async function buildReport(
   project: ReportProject,
   cards: ReportCard[],
+  building: ReportBuilding | null = null,
 ): Promise<Buffer> {
   const data = fs.readFileSync(TEMPLATE_PATH);
   const txt = (v: string | null) => ({
@@ -363,6 +452,9 @@ export async function buildReport(
       client: txt(project.client_nom),
       adresse: txt(project.client_adresse),
       type_service: txt(project.type_service),
+      description: building
+        ? { type: PatchType.DOCUMENT, children: descriptionBlocks(building) }
+        : txt(""), // non confirmée → section vide
       fiches: { type: PatchType.DOCUMENT, children: ficheBlocks(cards) },
     },
   });
