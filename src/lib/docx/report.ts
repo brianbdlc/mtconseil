@@ -35,6 +35,7 @@ import { afficher, parseCardFields, type CardFields, type Field, type Ligne2 } f
 import { parseBuildingRow, type BuildingFields } from "@/lib/building";
 import { idLabels } from "@/lib/equipmentId";
 import { imageSize } from "./imageSize";
+import { classerLigne } from "./redactionMarkdown";
 
 export const TEMPLATE_PATH = path.join(process.cwd(), "assets", "report-template.docx");
 
@@ -432,10 +433,58 @@ function descriptionBlocks(building: ReportBuilding): (Paragraph | Table)[] {
   return out;
 }
 
+// --- Sections rédigées (Phase 5) -------------------------------------------
+
+// Emplacement d'export : zone d'ancrage + ordre. Zones mappées sur les placeholders
+// existants du gabarit (apres_description / apres_fiches). `bilan` : stocké mais pas
+// exporté (attend la section 4 / Phase 8).
+export type ReportSection = { zone: string; ordre: number; texte: string };
+
+// Markdown léger (sortie IA) → blocs Word. « # » → Titre2 (3.x numéroté, R8),
+// « ## » → Titre3, « - » → puce (même rendu que les constats), sinon Corpsdetexte.
+function redactionBlocks(sections: ReportSection[]): Paragraph[] {
+  const out: Paragraph[] = [];
+  for (const s of sections) {
+    for (const raw of s.texte.split("\n")) {
+      const c = classerLigne(raw);
+      if (c.kind === "vide") continue;
+      if (c.kind === "titre3") {
+        // Titre3 rend 10 pt par défaut ; on force 11 pt (22 demi-points) comme demandé,
+        // en gardant le style (gras, numérotation). Titre2 reste à sa taille (12 pt).
+        out.push(new Paragraph({ style: "Titre3", children: [new TextRun({ text: c.texte, size: 22 })] }));
+      } else if (c.kind === "titre2") {
+        out.push(new Paragraph({ style: "Titre2", children: [new TextRun(c.texte)] }));
+      } else if (c.kind === "puce") {
+        // Puce de prose : style Corpsdetexte (hérite la taille 11 pt du corps), pas la
+        // puce 8 pt des constats de fiche. Préfixe « • » + retrait suspendu.
+        out.push(
+          new Paragraph({
+            style: "Corpsdetexte",
+            indent: { left: 360, hanging: 180 },
+            children: [new TextRun(`•  ${c.texte}`)],
+          }),
+        );
+      } else {
+        out.push(new Paragraph({ style: "Corpsdetexte", children: [new TextRun(c.texte)] }));
+      }
+    }
+  }
+  return out;
+}
+
+// Sections confirmées d'une zone, triées par ordre d'apparition (R8).
+function zoneBlocks(sections: ReportSection[], zone: string): Paragraph[] {
+  const inZone = sections
+    .filter((s) => s.zone === zone)
+    .sort((a, b) => a.ordre - b.ordre);
+  return inZone.length ? redactionBlocks(inZone) : [];
+}
+
 export async function buildReport(
   project: ReportProject,
   cards: ReportCard[],
   building: ReportBuilding | null = null,
+  sections: ReportSection[] = [],
 ): Promise<Buffer> {
   const data = fs.readFileSync(TEMPLATE_PATH);
   const txt = (v: string | null) => ({
@@ -453,9 +502,15 @@ export async function buildReport(
       adresse: txt(project.client_adresse),
       type_service: txt(project.type_service),
       description: building
-        ? { type: PatchType.DOCUMENT, children: descriptionBlocks(building) }
+        ? {
+            type: PatchType.DOCUMENT,
+            children: [...descriptionBlocks(building), ...zoneBlocks(sections, "apres_description")],
+          }
         : txt(""), // non confirmée → section vide
-      fiches: { type: PatchType.DOCUMENT, children: ficheBlocks(cards) },
+      fiches: {
+        type: PatchType.DOCUMENT,
+        children: [...ficheBlocks(cards), ...zoneBlocks(sections, "apres_fiches")],
+      },
     },
   });
   return out;

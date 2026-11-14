@@ -73,7 +73,25 @@ export async function GET(
     }),
   );
 
-  const buffer = await buildReport(project, reportCards, building);
+  // Sections rédigées confirmées (Phase 5). Type admin → zone/ordre du section_type ;
+  // section « Autre » (sans section_type) → zone apres_fiches en fin, titre libre en Titre2.
+  const { data: sectionRows } = await supabase
+    .from("report_sections")
+    .select("texte, titre, section_types(zone, ordre)")
+    .eq("project_id", id)
+    .eq("statut", "confirme");
+  let autreN = 0;
+  const sections = (sectionRows ?? [])
+    .filter((r) => r.texte.trim())
+    .map((r) => {
+      const st = r.section_types as unknown as { zone: string; ordre: number } | null;
+      if (st) return { zone: st.zone, ordre: st.ordre, texte: r.texte };
+      // Custom : préfixe le titre comme Titre2 (le texte n'en contient pas forcément).
+      const titre = r.titre?.trim() || "Autre";
+      return { zone: "apres_fiches", ordre: 1000 + autreN++, texte: `# ${titre}\n\n${r.texte}` };
+    });
+
+  const buffer = await buildReport(project, reportCards, building, sections);
   const nom = `${project.numero_projet?.trim() || "rapport"}.docx`;
 
   return new Response(new Uint8Array(buffer), {
