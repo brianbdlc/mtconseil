@@ -6,7 +6,6 @@ import { useAutosave } from "@/lib/useAutosave";
 import {
   afficher,
   toCardColumns,
-  type Autre,
   type CardFields,
   type Field,
   type Ligne2,
@@ -15,6 +14,7 @@ import { rangeLabel } from "@/lib/equipmentId";
 import { tonnesToKw } from "@/lib/units";
 import { nombreFr } from "@/lib/format";
 import Field3State from "@/components/Field3State";
+import ListeAutres from "@/components/ListeAutres";
 import StatutBadge from "@/components/StatutBadge";
 import PhotoGrid, { type Photo } from "./PhotoGrid";
 import { confirmCard, deleteCard, setStatut as setStatutAction, updateCard } from "../actions";
@@ -436,65 +436,5 @@ function Ligne2Editor({
       )}
       <ChampEstime label="Efficacité (%)" value={l.eff} disabled={disabled} onChange={(eff) => onChange({ eff })} />
     </div>
-  );
-}
-
-function ListeAutres({
-  autres,
-  disabled,
-  onChange,
-}: {
-  autres: Autre[];
-  disabled: boolean;
-  onChange: (a: Autre[]) => void;
-}) {
-  const upd = (i: number, patch: Partial<Autre>) =>
-    onChange(autres.map((a, j) => (j === i ? { ...a, ...patch } : a)));
-  return (
-    <>
-      {autres.map((a, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <input
-            value={a.titre}
-            disabled={disabled}
-            onChange={(e) => upd(i, { titre: e.target.value })}
-            className="h-9 w-32 rounded-md border border-n200 bg-n0 px-2 text-sm text-navy outline-none focus:border-navy disabled:bg-n50"
-          />
-          <input
-            value={a.valeur}
-            disabled={disabled}
-            placeholder="valeur"
-            onChange={(e) => upd(i, { valeur: e.target.value })}
-            className="h-9 flex-1 rounded-md border border-n200 bg-n0 px-2 text-sm text-navy outline-none focus:border-navy disabled:bg-n50"
-          />
-          <input
-            value={a.unite}
-            disabled={disabled}
-            placeholder="unité"
-            onChange={(e) => upd(i, { unite: e.target.value })}
-            className="h-9 w-20 rounded-md border border-n200 bg-n0 px-2 text-sm text-navy outline-none focus:border-navy disabled:bg-n50"
-          />
-          {!disabled && (
-            <button
-              type="button"
-              onClick={() => onChange(autres.filter((_, j) => j !== i))}
-              aria-label="Supprimer la ligne"
-              className="text-error"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      ))}
-      {!disabled && (
-        <button
-          type="button"
-          onClick={() => onChange([...autres, { titre: "Autre", valeur: "", unite: "" }])}
-          className="self-start text-sm text-info underline underline-offset-2"
-        >
-          + Autre
-        </button>
-      )}
-    </>
   );
 }

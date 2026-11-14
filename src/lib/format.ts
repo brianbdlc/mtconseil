@@ -19,3 +19,11 @@ export function montantFr(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "n/d";
   return `${nombreFr(n, 2)}${ESPACE}$`;
 }
+
+/** Inverse de nombreFr : « 74 134 » / « 1 234,5 » → nombre. `null` si vide/illisible. */
+export function parseNombreFr(s: string): number | null {
+  const cleaned = s.replace(/\s/g, "").replace(",", ".").trim();
+  if (cleaned === "") return null;
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
+}

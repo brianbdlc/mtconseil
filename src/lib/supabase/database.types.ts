@@ -12,33 +12,94 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      building_description: {
+        Row: {
+          annee_construction: string | null
+          annee_construction_etat: string
+          created_at: string
+          elec: string | null
+          elec_etat: string
+          fields: Json
+          gaz: string | null
+          gaz_etat: string
+          id: string
+          nombre_etages: string | null
+          nombre_etages_etat: string
+          photo_path: string | null
+          photo_paths: string[]
+          photo_titles: string[]
+          project_id: string
+          statut: string
+          superficie_brute_totale: string | null
+          superficie_brute_totale_etat: string
+          type_construction: string | null
+          type_construction_etat: string
+          updated_at: string
+          usage_principal: string | null
+          usage_principal_etat: string
+        }
+        Insert: {
+          annee_construction?: string | null
+          annee_construction_etat?: string
+          created_at?: string
+          elec?: string | null
+          elec_etat?: string
+          fields?: Json
+          gaz?: string | null
+          gaz_etat?: string
+          id?: string
+          nombre_etages?: string | null
+          nombre_etages_etat?: string
+          photo_path?: string | null
+          photo_paths?: string[]
+          photo_titles?: string[]
+          project_id: string
+          statut?: string
+          superficie_brute_totale?: string | null
+          superficie_brute_totale_etat?: string
+          type_construction?: string | null
+          type_construction_etat?: string
+          updated_at?: string
+          usage_principal?: string | null
+          usage_principal_etat?: string
+        }
+        Update: {
+          annee_construction?: string | null
+          annee_construction_etat?: string
+          created_at?: string
+          elec?: string | null
+          elec_etat?: string
+          fields?: Json
+          gaz?: string | null
+          gaz_etat?: string
+          id?: string
+          nombre_etages?: string | null
+          nombre_etages_etat?: string
+          photo_path?: string | null
+          photo_paths?: string[]
+          photo_titles?: string[]
+          project_id?: string
+          statut?: string
+          superficie_brute_totale?: string | null
+          superficie_brute_totale_etat?: string
+          type_construction?: string | null
+          type_construction_etat?: string
+          updated_at?: string
+          usage_principal?: string | null
+          usage_principal_etat?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_description_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_photos: {
         Row: {
           card_id: string
@@ -425,9 +486,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
