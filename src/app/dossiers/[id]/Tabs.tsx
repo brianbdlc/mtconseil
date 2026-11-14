@@ -10,6 +10,7 @@ export default function Tabs({ id }: { id: string }) {
     { href: base, label: "Dossier", actif: pathname === base },
     { href: `${base}/batiment`, label: "Bâtiment", actif: pathname.startsWith(`${base}/batiment`) },
     { href: `${base}/fiches`, label: "Fiches", actif: pathname.startsWith(`${base}/fiches`) },
+    { href: `${base}/redaction`, label: "Rédaction", actif: pathname.startsWith(`${base}/redaction`) },
     { href: `${base}/export`, label: "Export", actif: pathname.startsWith(`${base}/export`) },
   ];
 

@@ -352,6 +352,144 @@ export type Database = {
           },
         ]
       }
+      report_sections: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string
+          project_id: string
+          section_type_id: string | null
+          statut: string
+          texte: string
+          texte_genere: string | null
+          titre: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string
+          project_id: string
+          section_type_id?: string | null
+          statut?: string
+          texte?: string
+          texte_genere?: string | null
+          titre?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string
+          project_id?: string
+          section_type_id?: string | null
+          statut?: string
+          texte?: string
+          texte_genere?: string | null
+          titre?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_sections_section_type_id_fkey"
+            columns: ["section_type_id"]
+            isOneToOne: false
+            referencedRelation: "section_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_type_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          instructions: string
+          section_type_id: string
+          titre: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instructions: string
+          section_type_id: string
+          titre?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instructions?: string
+          section_type_id?: string
+          titre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_type_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_type_versions_section_type_id_fkey"
+            columns: ["section_type_id"]
+            isOneToOne: false
+            referencedRelation: "section_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_types: {
+        Row: {
+          actif: boolean
+          cle: string
+          created_at: string
+          id: string
+          instructions: string
+          notes_actives: boolean
+          ordre: number
+          requiert_batiment: boolean
+          titre: string
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          actif?: boolean
+          cle: string
+          created_at?: string
+          id?: string
+          instructions?: string
+          notes_actives?: boolean
+          ordre?: number
+          requiert_batiment?: boolean
+          titre: string
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          actif?: boolean
+          cle?: string
+          created_at?: string
+          id?: string
+          instructions?: string
+          notes_actives?: boolean
+          ordre?: number
+          requiert_batiment?: boolean
+          titre?: string
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
