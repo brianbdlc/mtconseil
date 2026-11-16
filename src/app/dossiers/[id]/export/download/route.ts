@@ -2,6 +2,8 @@ import { existsSync } from "node:fs";
 import { createClient } from "@/lib/supabase/server";
 import { buildingPhotos } from "@/lib/building";
 import { buildReport, TEMPLATE_PATH } from "@/lib/docx/report";
+import { chargerDonnees } from "@/lib/report/sourceSnapshot";
+import { sourceHash, estPerime } from "@/lib/ai/sourceData";
 
 export async function GET(
   _req: Request,
@@ -77,9 +79,26 @@ export async function GET(
   // section « Autre » (sans section_type) → zone apres_fiches en fin, titre libre en Titre2.
   const { data: sectionRows } = await supabase
     .from("report_sections")
-    .select("texte, titre, section_types(zone, ordre)")
+    .select("texte, titre, statut, source_hash_confirme, section_types(zone, ordre, titre)")
     .eq("project_id", id)
     .eq("statut", "confirme");
+
+  // US-28 : une section confirmée mais périmée (donnée source modifiée depuis) bloque
+  // l'export tant qu'elle n'est pas reconfirmée/régénérée.
+  const hashCourant = sourceHash((await chargerDonnees(supabase, id)).donnees);
+  const perimees = (sectionRows ?? [])
+    .filter((r) => estPerime(r.statut, r.source_hash_confirme, hashCourant))
+    .map((r) => {
+      const st = r.section_types as unknown as { titre: string } | null;
+      return st?.titre || r.titre?.trim() || "Section";
+    });
+  if (perimees.length > 0) {
+    return new Response(
+      `Export bloqué — données modifiées depuis la confirmation. Reconfirmez ou régénérez :\n- ${perimees.join("\n- ")}`,
+      { status: 409 },
+    );
+  }
+
   let autreN = 0;
   const sections = (sectionRows ?? [])
     .filter((r) => r.texte.trim())

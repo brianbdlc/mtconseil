@@ -4,18 +4,45 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { genererSection, aMarqueurManquant } from "@/lib/ai/generate";
-import { sourceData } from "@/lib/ai/sourceData";
+import { sourceHash } from "@/lib/ai/sourceData";
+import { chargerDonnees } from "@/lib/report/sourceSnapshot";
 
 export type SectionResult = { ok: true } | { ok: false; message: string };
 export type GenerResult = { ok: true; texte: string } | { ok: false; message: string };
+export type VersionVM = { id: string; texte: string; created_at: string; auteur: string | null };
 
-async function client() {
+async function clientUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  return supabase;
+  return { supabase, userId: user.id };
+}
+
+async function client() {
+  return (await clientUser()).supabase;
+}
+
+// Snapshot une version du texte confirmé (US-49), sauf si identique à la dernière (dédup).
+async function appendVersion(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  reportSectionId: string,
+  titre: string | null,
+  texte: string,
+  userId: string,
+) {
+  const { data: last } = await supabase
+    .from("report_section_versions")
+    .select("texte")
+    .eq("report_section_id", reportSectionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last?.texte === texte) return;
+  await supabase
+    .from("report_section_versions")
+    .insert({ report_section_id: reportSectionId, titre, texte, created_by: userId });
 }
 
 // Upsert une ligne report_sections (conflit project_id,section_type_id). R1 : toute
@@ -66,7 +93,99 @@ export async function confirmSection(
     return { ok: false, message: "Un marqueur « [Information manquante : … ] » reste à combler." };
   }
   if (!texte.trim()) return { ok: false, message: "Rien à confirmer." };
-  return upsert(projectId, sectionTypeId, { texte, statut: "confirme" });
+  const { supabase, userId } = await clientUser();
+  const { donnees } = await chargerDonnees(supabase, projectId);
+  const { data, error } = await supabase
+    .from("report_sections")
+    .upsert(
+      {
+        project_id: projectId,
+        section_type_id: sectionTypeId,
+        texte,
+        statut: "confirme",
+        source_hash_confirme: sourceHash(donnees),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "project_id,section_type_id" },
+    )
+    .select("id, titre")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  await appendVersion(supabase, data.id, data.titre, texte, userId);
+  revalidatePath(`/dossiers/${projectId}/redaction`);
+  return { ok: true };
+}
+
+// Reconfirme sans régénérer (US-27) : re-tamponne l'empreinte courante, texte et statut
+// inchangés, pas de nouvelle version. Lève la péremption « données modifiées ».
+export async function reconfirmerSansRegenerer(
+  projectId: string,
+  sectionTypeId: string,
+): Promise<SectionResult> {
+  const supabase = await client();
+  const { donnees } = await chargerDonnees(supabase, projectId);
+  const { error } = await supabase
+    .from("report_sections")
+    .update({ source_hash_confirme: sourceHash(donnees), updated_at: new Date().toISOString() })
+    .eq("project_id", projectId)
+    .eq("section_type_id", sectionTypeId);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath(`/dossiers/${projectId}/redaction`);
+  return { ok: true };
+}
+
+export async function reconfirmerSansRegenererById(id: string): Promise<SectionResult> {
+  const supabase = await client();
+  const { data: row } = await supabase
+    .from("report_sections")
+    .select("project_id")
+    .eq("id", id)
+    .single();
+  if (!row) return { ok: false, message: "Section introuvable." };
+  const { donnees } = await chargerDonnees(supabase, row.project_id);
+  const { error } = await supabase
+    .from("report_sections")
+    .update({ source_hash_confirme: sourceHash(donnees), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath(`/dossiers/${row.project_id}/redaction`);
+  return { ok: true };
+}
+
+// Historique de texte (US-49). Chargé à la demande depuis l'UI.
+export async function listVersions(reportSectionId: string): Promise<VersionVM[]> {
+  const supabase = await client();
+  const { data } = await supabase
+    .from("report_section_versions")
+    .select("id, texte, created_at, profiles(email)")
+    .eq("report_section_id", reportSectionId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((v) => ({
+    id: v.id,
+    texte: v.texte,
+    created_at: v.created_at,
+    auteur: (v.profiles as unknown as { email: string | null } | null)?.email ?? null,
+  }));
+}
+
+// Restaure une version : réécrit le texte EN BROUILLON (R1), renvoie le texte au client.
+export async function restaurerVersion(versionId: string): Promise<GenerResult> {
+  const supabase = await client();
+  const { data: v } = await supabase
+    .from("report_section_versions")
+    .select("report_section_id, texte")
+    .eq("id", versionId)
+    .single();
+  if (!v) return { ok: false, message: "Version introuvable." };
+  const { data: row, error } = await supabase
+    .from("report_sections")
+    .update({ texte: v.texte, statut: "brouillon", updated_at: new Date().toISOString() })
+    .eq("id", v.report_section_id)
+    .select("project_id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  revalidatePath(`/dossiers/${row.project_id}/redaction`);
+  return { ok: true, texte: v.texte };
 }
 
 export async function setSectionStatut(
@@ -120,30 +239,6 @@ export async function generer(
   return { ok: true, texte: res.texte };
 }
 
-// Données confirmées d'un dossier (bâtiment confirmé + fiches confirmées), sérialisées
-// pour le prompt. Partagé par generer (type admin) et genererById (section « Autre »).
-async function chargerDonnees(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  projectId: string,
-): Promise<{ donnees: string; batimentConfirme: boolean }> {
-  const { data: buildingRow } = await supabase
-    .from("building_description")
-    .select("*")
-    .eq("project_id", projectId)
-    .eq("statut", "confirme")
-    .maybeSingle();
-  const { data: cards } = await supabase
-    .from("equipment_cards")
-    .select("*")
-    .eq("project_id", projectId)
-    .eq("statut", "confirme")
-    .order("position", { ascending: true });
-  return {
-    donnees: sourceData({ building: buildingRow, cards: cards ?? [] }),
-    batimentConfirme: !!buildingRow,
-  };
-}
-
 // --- Sections « Autre » (ad hoc, par dossier, sans section_type) ------------
 // Écritures par id de ligne report_sections (pas de conflit project/type — section_type_id NULL).
 
@@ -190,7 +285,27 @@ export async function confirmById(id: string, texte: string): Promise<SectionRes
   if (aMarqueurManquant(texte))
     return { ok: false, message: "Un marqueur « [Information manquante : … ] » reste à combler." };
   if (!texte.trim()) return { ok: false, message: "Rien à confirmer." };
-  return updateById(id, { texte, statut: "confirme" });
+  const { supabase, userId } = await clientUser();
+  const { data: row } = await supabase
+    .from("report_sections")
+    .select("project_id, titre")
+    .eq("id", id)
+    .single();
+  if (!row) return { ok: false, message: "Section introuvable." };
+  const { donnees } = await chargerDonnees(supabase, row.project_id);
+  const { error } = await supabase
+    .from("report_sections")
+    .update({
+      texte,
+      statut: "confirme",
+      source_hash_confirme: sourceHash(donnees),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  await appendVersion(supabase, id, row.titre, texte, userId);
+  revalidatePath(`/dossiers/${row.project_id}/redaction`);
+  return { ok: true };
 }
 
 export async function setStatutById(
