@@ -352,6 +352,48 @@ export type Database = {
           },
         ]
       }
+      report_section_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          report_section_id: string
+          texte: string
+          titre: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          report_section_id: string
+          texte: string
+          titre?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          report_section_id?: string
+          texte?: string
+          titre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_section_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_section_versions_report_section_id_fkey"
+            columns: ["report_section_id"]
+            isOneToOne: false
+            referencedRelation: "report_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_sections: {
         Row: {
           created_at: string
@@ -359,6 +401,7 @@ export type Database = {
           notes: string
           project_id: string
           section_type_id: string | null
+          source_hash_confirme: string | null
           statut: string
           texte: string
           texte_genere: string | null
@@ -371,6 +414,7 @@ export type Database = {
           notes?: string
           project_id: string
           section_type_id?: string | null
+          source_hash_confirme?: string | null
           statut?: string
           texte?: string
           texte_genere?: string | null
@@ -383,6 +427,7 @@ export type Database = {
           notes?: string
           project_id?: string
           section_type_id?: string | null
+          source_hash_confirme?: string | null
           statut?: string
           texte?: string
           texte_genere?: string | null

@@ -2,6 +2,7 @@
 // pour nourrir le prompt de rédaction (R5 : l'IA ne voit que le confirmé). Réutilise
 // les helpers d'affichage existants — une source unique par valeur (R7).
 
+import { createHash } from "crypto";
 import { afficher, parseCardFields } from "@/lib/field";
 import { parseBuildingRow } from "@/lib/building";
 import { idLabels } from "@/lib/equipmentId";
@@ -67,4 +68,21 @@ export function sourceData(opts: {
   const fiches = fichesTexte(opts.cards);
   if (fiches) parts.push(fiches);
   return parts.join("\n\n") || "(aucune donnée confirmée)";
+}
+
+/** Empreinte des données sources (SERVEUR). Sur `donnees.trim()`, identique au prompt. */
+export function sourceHash(donnees: string): string {
+  return createHash("sha256").update(donnees.trim()).digest("hex");
+}
+
+/**
+ * Péremption (US-27/28) calculée à l'affichage : une section confirmée est « à régénérer »
+ * si son empreinte de confirmation diffère de l'empreinte courante. NULL ⇒ non périmé (legacy).
+ */
+export function estPerime(
+  statut: string,
+  hashConfirme: string | null | undefined,
+  hashCourant: string,
+): boolean {
+  return statut === "confirme" && !!hashConfirme && hashConfirme !== hashCourant;
 }

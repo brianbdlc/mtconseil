@@ -18,6 +18,11 @@ import {
   setStatutById,
   supprimerAutre,
   genererById,
+  reconfirmerSansRegenerer,
+  reconfirmerSansRegenererById,
+  listVersions,
+  restaurerVersion,
+  type VersionVM,
 } from "./actions";
 
 export type SectionVM = {
@@ -29,8 +34,17 @@ export type SectionVM = {
   notes: string;
   texte: string;
   statut: string;
+  reportSectionId: string | null;
+  perime: boolean;
 };
-export type AutreVM = { id: string; titre: string; notes: string; texte: string; statut: string };
+export type AutreVM = {
+  id: string;
+  titre: string;
+  notes: string;
+  texte: string;
+  statut: string;
+  perime: boolean;
+};
 
 const LIBELLE: Record<string, string> = {
   idle: "",
@@ -73,7 +87,10 @@ export default function RedactionForm({
         return;
       }
       setAddErr(null);
-      setAutres((a) => [...a, { id: r.id, titre: "Autre", notes: "", texte: "", statut: "brouillon" }]);
+      setAutres((a) => [
+        ...a,
+        { id: r.id, titre: "Autre", notes: "", texte: "", statut: "brouillon", perime: false },
+      ]);
     });
   }
 
@@ -136,6 +153,117 @@ export default function RedactionForm({
   );
 }
 
+// Bannière « données modifiées depuis la confirmation » (US-27/28). Deux issues :
+// reconfirmer tel quel, ou rouvrir pour régénérer/modifier.
+function PerimeBanner({
+  pending,
+  onReconfirmer,
+  onRouvrir,
+}: {
+  pending: boolean;
+  onReconfirmer: () => void;
+  onRouvrir: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-md bg-amber-tint px-3 py-2">
+      <p className="text-sm text-warning">
+        ⚠ Données modifiées depuis la confirmation. Reconfirmez ou régénérez avant l&apos;export.
+      </p>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onReconfirmer}
+          disabled={pending}
+          className="h-10 rounded-md bg-amber px-4 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+        >
+          Reconfirmer sans régénérer
+        </button>
+        <button
+          type="button"
+          onClick={onRouvrir}
+          disabled={pending}
+          className="h-10 rounded-md border border-navy px-4 text-sm font-medium text-navy hover:bg-n50 disabled:opacity-50"
+        >
+          Rouvrir pour modifier
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Historique de versions (US-49), chargé à la demande. Restaurer réécrit en brouillon.
+function VersionsPanel({
+  reportSectionId,
+  onRestore,
+}: {
+  reportSectionId: string;
+  onRestore: (texte: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [versions, setVersions] = useState<VersionVM[] | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    setErreur(null);
+    start(async () => setVersions(await listVersions(reportSectionId)));
+  }
+  function restaurer(id: string) {
+    start(async () => {
+      const r = await restaurerVersion(id);
+      if (!r.ok) {
+        setErreur(r.message);
+        return;
+      }
+      onRestore(r.texte);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={toggle}
+        className="self-start text-sm font-medium text-navy underline underline-offset-2 hover:text-amber-hover"
+      >
+        {open ? "Masquer les versions" : "Versions"}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 rounded-md border border-n200 p-3">
+          {!versions ? (
+            <p className="text-xs text-n500">Chargement…</p>
+          ) : versions.length === 0 ? (
+            <p className="text-xs text-n500">Aucune version confirmée.</p>
+          ) : (
+            versions.map((v) => (
+              <div key={v.id} className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-xs text-n500">
+                  {new Date(v.created_at).toLocaleString("fr-CA")}
+                  {v.auteur ? ` — ${v.auteur}` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => restaurer(v.id)}
+                  disabled={pending}
+                  className="shrink-0 rounded-md border border-navy px-3 py-1 text-xs font-medium text-navy hover:bg-n50 disabled:opacity-50"
+                >
+                  Restaurer
+                </button>
+              </div>
+            ))
+          )}
+          {erreur && <p className="text-xs text-error">{erreur}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Section « Autre » ad hoc : titre modifiable, sinon identique à une section normale.
 function AutreCard({
   projectId,
@@ -169,6 +297,7 @@ function AutreCard({
   });
 
   function genererAutre() {
+    if (value.texte.trim() && !confirm("Un brouillon non vide sera remplacé. Continuer ?")) return;
     setGen("Génération en cours…");
     setErreur(null);
     start(async () => {
@@ -179,6 +308,17 @@ function AutreCard({
         return;
       }
       onChange({ texte: r.texte, statut: "brouillon" });
+    });
+  }
+  function reconfirmer() {
+    start(async () => {
+      const r = await reconfirmerSansRegenererById(value.id);
+      if (!r.ok) {
+        setErreur(r.message);
+        return;
+      }
+      setErreur(null);
+      onChange({ perime: false });
     });
   }
   function confirmer() {
@@ -233,7 +373,7 @@ function AutreCard({
           <span className="h-4 text-xs text-n500" aria-live="polite">
             {LIBELLE[indic]}
           </span>
-          <StatutBadge statut={value.statut} />
+          <StatutBadge statut={value.statut} perime={value.perime} />
           <button
             type="button"
             onClick={supprimer}
@@ -290,33 +430,42 @@ function AutreCard({
       )}
       {erreur && <p className="rounded-md bg-error-tint px-3 py-2 text-sm text-error">{erreur}</p>}
 
-      <div className="flex items-center gap-3">
-        {locked ? (
-          <button
-            type="button"
-            onClick={rouvrir}
-            disabled={pending}
-            className="h-10 rounded-md border border-navy px-4 text-sm font-medium text-navy hover:bg-n50 disabled:opacity-50"
-          >
-            Rouvrir pour modifier
-          </button>
-        ) : (
-          <>
+      {locked && value.perime ? (
+        <PerimeBanner pending={pending} onReconfirmer={reconfirmer} onRouvrir={rouvrir} />
+      ) : (
+        <div className="flex items-center gap-3">
+          {locked ? (
             <button
               type="button"
-              onClick={confirmer}
-              disabled={pending || bloqueConfirm}
-              className="h-10 rounded-md bg-amber px-4 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+              onClick={rouvrir}
+              disabled={pending}
+              className="h-10 rounded-md border border-navy px-4 text-sm font-medium text-navy hover:bg-n50 disabled:opacity-50"
             >
-              Confirmer
+              Rouvrir pour modifier
             </button>
-            <span className="text-xs text-n500">
-              Format : «&nbsp;#&nbsp;» + espace = titre, «&nbsp;##&nbsp;» + espace = sous-titre.
-              Sans ça, la ligne reste du texte normal.
-            </span>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={confirmer}
+                disabled={pending || bloqueConfirm}
+                className="h-10 rounded-md bg-amber px-4 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+              >
+                Confirmer
+              </button>
+              <span className="text-xs text-n500">
+                Format : «&nbsp;#&nbsp;» + espace = titre, «&nbsp;##&nbsp;» + espace = sous-titre.
+                Sans ça, la ligne reste du texte normal.
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      <VersionsPanel
+        reportSectionId={value.id}
+        onRestore={(texte) => onChange({ texte, statut: "brouillon", perime: false })}
+      />
     </div>
   );
 }
@@ -467,6 +616,7 @@ function SectionCard({
   });
 
   function gener2() {
+    if (value.texte.trim() && !confirm("Un brouillon non vide sera remplacé. Continuer ?")) return;
     setGen("Génération en cours…");
     setErreur(null);
     start(async () => {
@@ -477,6 +627,16 @@ function SectionCard({
         return;
       }
       onChange({ texte: r.texte, statut: "brouillon" });
+    });
+  }
+  function reconfirmer() {
+    start(async () => {
+      const r = await reconfirmerSansRegenerer(projectId, vm.typeId);
+      if (!r.ok) {
+        setErreur(r.message);
+        return;
+      }
+      setErreur(null);
     });
   }
   function confirmer() {
@@ -506,7 +666,7 @@ function SectionCard({
       <div className="rounded-md border border-n200 bg-n50 p-4 opacity-70">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-navy">{vm.titre}</h3>
-          <StatutBadge statut={value.statut} />
+          <StatutBadge statut={value.statut} perime={vm.perime} />
         </div>
         <p className="mt-2 text-sm text-n500">
           Disponible seulement une fois la description du bâtiment confirmée.
@@ -520,7 +680,7 @@ function SectionCard({
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-navy">{vm.titre}</h3>
         <div className="flex items-center gap-3">
-          <StatutBadge statut={value.statut} />
+          <StatutBadge statut={value.statut} perime={vm.perime} />
         </div>
       </div>
 
@@ -580,33 +740,44 @@ function SectionCard({
       )}
       {erreur && <p className="rounded-md bg-error-tint px-3 py-2 text-sm text-error">{erreur}</p>}
 
-      <div className="flex items-center gap-3">
-        {locked ? (
-          <button
-            type="button"
-            onClick={rouvrir}
-            disabled={pending}
-            className="h-10 rounded-md border border-navy px-4 text-sm font-medium text-navy hover:bg-n50 disabled:opacity-50"
-          >
-            Rouvrir pour modifier
-          </button>
-        ) : (
-          <>
+      {locked && vm.perime ? (
+        <PerimeBanner pending={pending} onReconfirmer={reconfirmer} onRouvrir={rouvrir} />
+      ) : (
+        <div className="flex items-center gap-3">
+          {locked ? (
             <button
               type="button"
-              onClick={confirmer}
-              disabled={pending || bloqueConfirm}
-              className="h-10 rounded-md bg-amber px-4 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+              onClick={rouvrir}
+              disabled={pending}
+              className="h-10 rounded-md border border-navy px-4 text-sm font-medium text-navy hover:bg-n50 disabled:opacity-50"
             >
-              Confirmer
+              Rouvrir pour modifier
             </button>
-            <span className="text-xs text-n500">
-              Format : «&nbsp;#&nbsp;» + espace = titre, «&nbsp;##&nbsp;» + espace = sous-titre.
-              Sans ça, la ligne reste du texte normal.
-            </span>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={confirmer}
+                disabled={pending || bloqueConfirm}
+                className="h-10 rounded-md bg-amber px-4 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+              >
+                Confirmer
+              </button>
+              <span className="text-xs text-n500">
+                Format : «&nbsp;#&nbsp;» + espace = titre, «&nbsp;##&nbsp;» + espace = sous-titre.
+                Sans ça, la ligne reste du texte normal.
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {vm.reportSectionId && (
+        <VersionsPanel
+          reportSectionId={vm.reportSectionId}
+          onRestore={(texte) => onChange({ texte, statut: "brouillon" })}
+        />
+      )}
     </div>
   );
 }
