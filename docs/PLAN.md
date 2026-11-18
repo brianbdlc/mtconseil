@@ -19,7 +19,7 @@ Décisions durables qui s'appliquent à toutes les phases :
 - **IA** : Claude (Anthropic), un seul fournisseur pour vision (lecture factures) et rédaction. Clés jamais exposées au client. Instructions de rédaction **stockées en base** (pas dans le code) et envoyées à chaque requête. Vérification humaine obligatoire sur toute lecture de facture (R5, R6).
 - **Génération `.docx`** : bibliothèque côté serveur produisant vrais styles Titre 1/2/3 avec numérotation auto, champs Word pour légendes/numéros de tableau/figure, tableaux Word natifs, images (photos/graphiques). *ponytail : la bibliothèque précise n'est pas figée ici — à valider tôt contre le modèle Word MT Conseil (Phase 2) ; la décision durable est « .docx modifiable à vrais styles », pas l'outil.*
 - **Routes** : `/login` ; `/dossiers` (liste firme) ; `/dossiers/[id]` avec onglets (fiches, description, factures, rédaction, annexe, export) ; `/admin` (comptes, permissions, types de section, valeurs par défaut).
-- **Schéma (formes, pas détails)** : `profiles` (↔ `auth.users`, rôle `ingenieur|admin`) ; `projects` (numero_projet, client_nom, client_adresse, type_service) ; `equipment_cards` + lignes de tableau + lignes « + Autre » ; `photos` (Storage) ; `building_description` + `zones` ; `section_types` + `section_type_versions` ; `sections` (notes, texte_genere, texte_confirme, statut, hash des sources) ; `invoices` + `invoice_months` ; `optima_annex` ; `report_approvals` ; historique générique `text_versions` (R10).
+- **Schéma (formes, pas détails)** : `profiles` (↔ `auth.users`, rôle `ingenieur|admin`) ; `projects` (numero_projet, client_nom, client_adresse, type_service) ; `equipment_cards` + lignes de tableau + lignes « + Autre » ; `photos` (Storage) ; `building_description` + `zones` ; `section_types` + `section_type_versions` ; `sections` (notes, texte_genere, texte_confirme, statut, hash des sources) ; `invoices` (une ligne par facture/période) + `invoice_files` + `energy_settings` ; `optima_annex` ; `report_approvals` ; historique générique `text_versions` (R10).
 - **Modèle de champ transversal** : chaque champ = `{ valeur, état(valeur | « n/d » | « - »), estimé:bool }` (R2, R4). Vide → affiché « n/d » ; « ? » accepté tel quel.
 - **Statut de bloc** : chaque bloc de données/texte a un statut `brouillon | confirmé` ; seul le confirmé sert aux calculs/rédaction/vérifs/export ; modifier du confirmé → `à reconfirmer` + marque `à régénérer` ce qui en dépend (R1). Autosave (US-48) et indicateur de progression (US-50) sont des fondations posées tôt.
 - **Numérotation** : numéros de section/tableau/figure/ID d'équipement **calculés à l'affichage et à l'export** selon l'ordre d'apparition, jamais stockés en dur (R8).
@@ -30,7 +30,7 @@ Décisions durables qui s'appliquent à toutes les phases :
 ### Dépendances externes bloquantes (à obtenir de MT Conseil)
 - Modèle Word (polices, couleurs, styles) + logo → **bloque Phase 2**.
 - Formules section 4, normalisation, source degrés-jours, facteurs d'émission → **bloque Phase 8**.
-- Vraies factures Énergir + Hydro-Québec (12 mois ×2) → **nécessaires pour tester Phase 7**.
+- Vraies factures Énergir + Hydro-Québec (couvrant l'année de référence, environ 13 par source) → **utiles** (convention de dates, Phase 7b) mais **ne bloquent pas la Phase 7** : la normalisation est validée par des tests automatiques avec des exemples fictifs dont le résultat est calculé à la main.
 - PDF Optima de test → **nécessaire pour Phase 9**.
 - Exemples de rapports + notes de visite brutes + cible chiffrée de temps → support de tout le projet.
 
@@ -140,20 +140,40 @@ Suivi des dépendances source → section : quand une donnée source confirmée 
 
 ---
 
-## Phase 7 : Factures — ingestion + lecture IA
+## Phase 7 : Factures — saisie par facture + normalisation mensuelle
 
-**User stories** : US-31, US-32, US-33 (+ R5, R11)
+**User stories** : US-31, US-32, US-33, US-51, US-52, US-53 (+ R5, R6, R11)
 
 ### Ce qu'on livre
-Téléversement des factures de l'année de référence (gaz naturel + électricité, 12 mois/source). Lecture Claude (vision) proposant par mois (jours, consommation, coût av.tx) + niveau de confiance, **facture affichée à côté** pour vérifier. Correction / saisie manuelle d'un mois illisible ou absent puis confirmation ; seules les données confirmées servent ; un mois sans facture reste « manquant » et n'est **jamais estimé**.
+Onglet Factures : l'ingénieur **saisit chaque facture une par une** (source gaz/élec, compteur, début et fin de période, consommation, montant taxes incluses, montant avant taxes proposé = total ÷ taux de taxe et corrigeable, puissance appelée pour l'élec). Téléversement de la **photo ou du PDF** de la facture, affichée à côté (zoom + rotation) pour recopier et vérifier — **pas de lecture automatique** ici (reportée Phase 7b). Le **code normalise** les périodes en **12 mois civils au prorata des jours** (consommation et coût), **par compteur puis en somme** ; conversions gaz (m³ → GJ → kWh équiv.) et élec (kWh → GJ) avec pouvoir calorifique modifiable (R6). Seules les données confirmées servent ; un mois sans facture ou une valeur « n/d » reste **« manquant » et n'est jamais estimé**.
+
+Note code : l'onglet Factures clone le patron « Fiches » (liste + sous-page, `Field3State`, `useAutosave`, `StatutBadge`, HEIC) ; les taux de taxe vont dans `src/lib/energyParams.ts`, le pouvoir calorifique + la base DJ par dossier dans `energy_settings`. Les **valeurs normalisées confirmées sont branchées dans `chargerDonnees`/`sourceData`** pour que la péremption (Phase 6) détecte « donnée modifiée depuis la confirmation » — pas de nouvelle empreinte. Un script `npm test` (`tsx`) couvre les calculs et tourne en CI.
 
 ### Critères d'acceptation
-- [ ] Upload de 12 factures par source ; la lecture propose valeurs + confiance avec la facture à côté.
-- [ ] Un mois corrigé puis confirmé est verrouillé comme source ; un mois manquant reste « manquant ».
-- [ ] Taux de valeurs lues exactement mesuré sur le jeu de test.
+- [ ] Saisie de chaque facture (période, conso, montants) avec sa photo/PDF affichée à côté ; aucune lecture automatique.
+- [ ] Normalisation en 12 mois civils au prorata des jours (conso + coût, par compteur puis somme) validée par des tests automatiques avec des exemples fictifs dont le résultat est calculé à la main.
+- [ ] Montant avant taxes proposé et corrigeable ; une facture corrigée puis confirmée est verrouillée comme source ; un mois manquant reste « manquant ».
+- [ ] Modifier une facture confirmée marque les sections dépendantes « données modifiées » (via `chargerDonnees`).
 
 ## Bloquée par
-- Phase 1. (Nécessite de vraies factures Énergir/Hydro-Québec pour tester.)
+- Phase 1, Phase 4 (nombre de compteurs ↔ description du bâtiment), Phase 6 (péremption). La normalisation est validée par des tests automatiques (exemples fictifs calculés à la main) ; les vraies factures Énergir/Hydro-Québec sont utiles (convention de dates, Phase 7b) mais ne bloquent pas.
+
+---
+
+## Phase 7b : Factures — lecture assistée des PDF
+
+**User stories** : US-54 (+ R5, R6)
+
+### Ce qu'on livre
+Lecture **assistée par l'IA des factures PDF uniquement** (les photos restent saisies à la main). Skill `analyse-factures` : appel **côté serveur** à Claude proposant les valeurs de chaque champ avec un **niveau de confiance**, pré-remplissant le formulaire de la Phase 7 que l'ingénieur **vérifie et confirme** (R5). Le **code valide** le format des valeurs proposées (R6). Tests simulés sur des PDF de référence (taux de valeurs lues exactement).
+
+### Critères d'acceptation
+- [ ] Un PDF lu propose les valeurs par champ avec confiance ; rien n'est confirmé sans vérification humaine.
+- [ ] Les valeurs proposées alimentent le même formulaire que la saisie manuelle (Phase 7).
+- [ ] Taux de valeurs lues exactement mesuré sur les PDF de test.
+
+## Bloquée par
+- Phase 7 validée. (Nécessite de vrais PDF Énergir/Hydro-Québec.)
 
 ---
 
@@ -162,15 +182,23 @@ Téléversement des factures de l'année de référence (gaz naturel + électric
 **User stories** : US-34, US-35, US-36, US-37, US-38 (+ R6, R7)
 
 ### Ce qu'on livre
-Le **code** calcule totaux, moyennes, %, GES, intensités et degrés-jours base 18 °C à partir des données confirmées (R6). 5 tableaux (jamais coupés entre deux pages) + 5 graphiques (A gaz+DJ, B élec+DJ, C énergie empilée+DJ, D anneau coûts, E circulaire énergie ; orange gaz / bleu foncé élec) insérés en images (US-35). Textes à modèle fixe remplis par l'app (intros, phrases d'annonce, 4.3.1/4.3.2) avec avertissement si un chiffre ne correspond plus (US-36/R7). L'IA rédige l'analyse 4.3 à partir des chiffres + notes (US-37). Avertissements non bloquants de cohérence (jours ≠ 365/366, mois manquant/double/mal ordonné, chevauchement, aberrant, total ≠ somme, % ≠ 100, chiffre texte ≠ tableau) (US-38). Exportée dans le Word.
+Une seule fonction pure **`construireBilan(...)`** calcule tout le dérivé (totaux, moyennes, %, GES, intensités, degrés-jours base 18 °C) à partir des valeurs **normalisées confirmées** (Phase 7) ; tableaux, graphiques et textes la **lisent, aucun ne recalcule** (R6). **GJ = valeur maîtresse** : kWh équiv. gaz = GJ non arrondi × 277,7778 (ne pas utiliser 10,53 kWh/m³ ; tolérance 0,1 % sur la colonne kWh équiv. au test de comparaison).
+
+Tableaux et figures (tables et figures **comptées séparément**, légende **au-dessus** en italique centrée via champ Word, tableau centré **jamais coupé** entre deux pages, uniformisation GJ entiers / coûts 2 décimales) :
+- **Tableau 1 (gaz)** et **Tableau 2 (élec)** : titres normalisés, colonnes décrites.
+- **Figures A/B** : légende au-dessus, axe gauche unité d'origine (barres gris-bleu), axe droit degrés-jours — **orange = DJ chauffage, vert = DJ climatisation** (base 18 °C). *L'orange ici = chauffage, pas « le gaz » : la règle orange=gaz / bleu=élec ne vaut que pour la figure C.*
+- **Tableau 3** (énergie gaz + élec + total) + **Figure C** (barres empilées GJ + DJ) + **Figure D** (anneau des coûts).
+- **Tableaux 4/5 et figure E** : captures non reçues → **non spécifiés**, à demander à Brian.
+
+Textes à modèle fixe remplis par l'app (intros, phrases d'annonce, 4.3.1/4.3.2) avec avertissement si un chiffre ne correspond plus (US-36/R7). L'IA rédige l'analyse 4.3 à partir des chiffres confirmés + notes, **sans aucune recommandation de son cru**, marqueur « [Information manquante : …] » au besoin (US-37/R5) ; l'exemple de style du type de section « Analyse du bilan » est **anonymisé** (jamais de vrais chiffres). **Degrés-jours** : source à confirmer avec Luis ; **en attendant, saisie à la main** de 24 valeurs/dossier (DJ chauffage + climatisation). Avertissements non bloquants de cohérence supplémentaires (total ≠ somme, % ≠ 100, kWh ≠ GJ × 277,7778, chiffre texte ≠ tableau) en plus de ceux de la Phase 7 (US-38). Exportée dans le Word.
 
 ### Critères d'acceptation
 - [ ] Reproduit la section 4 du rapport de référence (mêmes valeurs et mise en page) **sans ses erreurs** (367 jours, mois mal nommés au tableau 3, chiffres de texte ≠ tableaux).
-- [ ] 5 graphiques aux bonnes couleurs ; 5 tableaux jamais coupés ; source de données unique (un chiffre = une donnée).
+- [ ] Figures aux bonnes couleurs (A/B : orange = DJ chauffage, vert = DJ clim ; C : orange gaz / bleu élec) ; tableaux jamais coupés ; `construireBilan` est la seule source du dérivé (un chiffre = une donnée).
 - [ ] Avertissements de cohérence s'affichent sans bloquer.
 
 ## Bloquée par
-- Phase 7 (données confirmées) ; Phases 5–6 (rédaction + cohérence source→texte) ; Phase 2 (export). **Bloqueur externe : formules/normalisation/degrés-jours/facteurs d'émission à obtenir de MT Conseil.**
+- Phase 7 (valeurs normalisées confirmées) ; Phases 5–6 (rédaction + cohérence source→texte) ; Phase 2 (export). **Bloqueur externe : degrés-jours (saisie manuelle en attendant) et facteurs d'émission à obtenir de MT Conseil.**
 
 ---
 
