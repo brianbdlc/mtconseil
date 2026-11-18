@@ -61,14 +61,18 @@ Contexte d'usage : terrain (téléphone, réseau parfois faible, téléversement
 - US-30 : En tant qu'administrateur, je veux que chaque modification d'instructions soit historisée avec retour en arrière, afin de revenir à une version antérieure.
 
 **Factures et bilan énergétique (section 4)**
-- US-31 : En tant qu'ingénieur, je veux téléverser les factures de l'année de référence (gaz naturel et électricité, 12 mois par source), afin d'alimenter le bilan.
-- US-32 : En tant qu'ingénieur, je veux que l'app lise les factures et propose par mois (jours, consommation, coût av.tx) avec un niveau de confiance, la facture affichée à côté, afin de vérifier.
-- US-33 : En tant qu'ingénieur, je veux corriger, saisir à la main un mois illisible ou absent et confirmer, afin que seules les données confirmées servent aux calculs ; un mois sans facture reste « manquant » et n'est jamais estimé.
+- US-31 : En tant qu'ingénieur, je veux saisir mes factures une par une (source, compteur, début et fin de période, consommation, montant taxes incluses, montant avant taxes, puissance appelée pour l'électricité), afin d'alimenter le bilan à partir de chaque période facturée.
+- US-32 : En tant qu'ingénieur, je veux téléverser la photo ou le PDF de la facture et la voir à côté de ma saisie (zoom et rotation), afin de recopier et vérifier les valeurs (lecture automatique reportée : Phase 7b).
+- US-33 : En tant qu'ingénieur, je veux corriger et saisir à la main une facture et la confirmer, afin que seules les données confirmées servent aux calculs ; un mois sans facture ou une valeur « n/d » reste « manquant » et n'est jamais estimé.
 - US-34 : En tant qu'ingénieur, je veux que le code calcule les totaux, moyennes, pourcentages, GES et intensités à partir des données confirmées, afin de produire la section 4.
 - US-35 : En tant qu'ingénieur, je veux les cinq tableaux et les cinq graphiques (couleurs orange gaz, bleu foncé électricité), afin d'obtenir la section 4 au style du rapport de référence.
 - US-36 : En tant qu'ingénieur, je veux les textes à modèle fixe remplis par l'app (introductions, phrases d'annonce des graphiques, paragraphes 4.3.1/4.3.2), avec avertissement si un chiffre ne correspond plus aux données, afin d'éviter les incohérences.
 - US-37 : En tant qu'ingénieur, je veux que l'IA rédige le texte d'analyse du bilan (4.3) à partir des chiffres et de mes notes, afin d'interpréter les données.
-- US-38 : En tant qu'ingénieur, je veux des avertissements non bloquants de cohérence (total de jours ≠ 365/366, mois manquant/double/mal ordonné, chevauchement de périodes, valeur aberrante, total ≠ somme, pourcentages ≠ 100 %, chiffre de texte ≠ tableau), afin de repérer les erreurs.
+- US-38 : En tant qu'ingénieur, je veux des avertissements non bloquants de cohérence (trou ou chevauchement entre périodes d'un même compteur, année non couverte du 1er janvier au 31 décembre, fin de période < début, coût par unité hors de l'ordinaire, nombre de compteurs ≠ description du bâtiment, valeur aberrante, total ≠ somme au-delà de la tolérance d'arrondi, pourcentages ≠ 100 %, chiffre de texte ≠ tableau), afin de repérer les erreurs.
+- US-51 : En tant qu'ingénieur, je veux que le code normalise mes factures en 12 mois civils au prorata des jours (consommation et coût), par compteur puis en somme, afin d'obtenir le bilan par mois civil.
+- US-52 : En tant qu'ingénieur, je veux les conversions gaz (m³ → GJ → kWh équivalents) et électricité (kWh → GJ) avec un pouvoir calorifique modifiable, afin d'exprimer toutes les énergies dans la même unité.
+- US-53 : En tant qu'ingénieur, je veux que le montant avant taxes soit proposé (total ÷ taux de taxe) et corrigeable, afin de travailler sur l'avant taxes du rapport.
+- US-54 (Phase 7b) : En tant qu'ingénieur, je veux qu'une facture PDF soit lue par l'IA qui propose les valeurs avec un niveau de confiance par champ, afin de gagner du temps sur les PDF tout en vérifiant chaque valeur.
 
 **Annexe Optima**
 - US-39 : En tant qu'ingénieur, je veux téléverser le PDF d'Optima et le voir en dernière partie, inchangé (pages en images pleine page, bonne orientation, sans logo ni pied de page MT Conseil), afin d'annexer la simulation.
@@ -145,20 +149,22 @@ Contexte d'usage : terrain (téléphone, réseau parfois faible, téléversement
 **À définir / à obtenir de MT Conseil (bloquant certaines parties)**
 - Cible chiffrée du temps de production (à fixer avec Luis).
 - Formules de calcul de la section 4, méthode de normalisation de la consommation, source des degrés-jours, facteurs d'émission — fournis pendant la construction (la partie Factures/section 4 en dépend).
-- Format réel des factures (probablement PDF) — la lecture automatique doit être testée sur de vraies factures gaz naturel (Énergir) et électricité (Hydro-Québec), 12 mois chacune.
+- Fichier Excel de normalisation de Luis, source des degrés-jours, facteurs d'émission, pouvoir calorifique d'Énergir.
+- Format réel des factures (surtout des photos, parfois des PDF) — la lecture assistée (Phase 7b) doit être testée sur de vraies factures gaz naturel (Énergir) et électricité (Hydro-Québec), factures couvrant toute l'année de référence (environ 13 par source).
 - Moment exact de l'approbation par rapport aux modifications faites à la main dans Word (à définir avec Luis).
 - Modèle Word de MT Conseil (polices, couleurs, styles) et logo.
 - Exemples de rapports d'audit existants et un PDF d'Optima pour les tests ; notes de visite brutes de Luis pour les sections à rédiger.
 - Signification du suffixe de la référence de la page titre.
 
 **Hypothèses**
-- L'app appelle une IA (vision comprise) pour lire les factures et rédiger ; le code décide des étapes, l'IA ne décide pas (pas d'agent autonome en première livraison) ; vérification humaine obligatoire sur toute lecture de facture.
+- L'IA rédige ; les factures sont saisies à la main ; pour les PDF (rares), une lecture assistée par l'IA propose les valeurs et l'ingénieur vérifie (Phase 7b). Le code décide des étapes, l'IA ne décide pas (pas d'agent autonome en première livraison) ; vérification humaine obligatoire sur toute lecture de facture.
 - Pas d'entraînement de modèle : amélioration par instructions, exemples, jeux de test et révision humaine. Instructions stockées dans l'app (pas dans le code) et envoyées à chaque requête.
 
 **Risques**
 - Une erreur de lecture ou de saisie se propage dans tout le rapport → d'où la confirmation obligatoire à chaque étape et les vérifications de cohérence.
 - Un Word construit par programme peut différer de la mise en page MT Conseil → valider tôt avec le modèle Word.
 - L'annexe Optima en images alourdit le fichier Word.
+- Le coût de l'électricité (tarif M) n'est pas proportionnel aux kWh ; le prorata des jours est une approximation (méthode de Luis).
 - Confidentialité des données clients (loi 25).
 
 **Exclu du PRD (ira dans `docs/PLAN.md` via /planifie)** : plan de livraison T0–T6, pile technique, workflow Git/CI, environnements séparés (local/aperçu/production), exigences de déploiement.
