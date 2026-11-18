@@ -30,7 +30,7 @@ Décisions durables qui s'appliquent à toutes les phases :
 ### Dépendances externes bloquantes (à obtenir de MT Conseil)
 - Modèle Word (polices, couleurs, styles) + logo → **bloque Phase 2**.
 - Formules section 4, normalisation, source degrés-jours, facteurs d'émission → **bloque Phase 8**.
-- Vraies factures Énergir + Hydro-Québec (couvrant l'année de référence, environ 13 par source) + fichier Excel de normalisation de Luis → **nécessaires pour tester Phase 7**.
+- Vraies factures Énergir + Hydro-Québec (couvrant l'année de référence, environ 13 par source) → **utiles** (convention de dates, Phase 7b) mais **ne bloquent pas la Phase 7** : la normalisation est validée par des tests automatiques avec des exemples fictifs dont le résultat est calculé à la main.
 - PDF Optima de test → **nécessaire pour Phase 9**.
 - Exemples de rapports + notes de visite brutes + cible chiffrée de temps → support de tout le projet.
 
@@ -151,12 +151,12 @@ Note code : l'onglet Factures clone le patron « Fiches » (liste + sous-page, `
 
 ### Critères d'acceptation
 - [ ] Saisie de chaque facture (période, conso, montants) avec sa photo/PDF affichée à côté ; aucune lecture automatique.
-- [ ] Normalisation en 12 mois civils au prorata des jours vérifiée contre le fichier Excel de Luis (conso + coût, par compteur puis somme).
+- [ ] Normalisation en 12 mois civils au prorata des jours (conso + coût, par compteur puis somme) validée par des tests automatiques avec des exemples fictifs dont le résultat est calculé à la main.
 - [ ] Montant avant taxes proposé et corrigeable ; une facture corrigée puis confirmée est verrouillée comme source ; un mois manquant reste « manquant ».
 - [ ] Modifier une facture confirmée marque les sections dépendantes « données modifiées » (via `chargerDonnees`).
 
 ## Bloquée par
-- Phase 1, Phase 4 (nombre de compteurs ↔ description du bâtiment), Phase 6 (péremption). (Nécessite de vraies factures Énergir/Hydro-Québec + le fichier Excel de normalisation de Luis.)
+- Phase 1, Phase 4 (nombre de compteurs ↔ description du bâtiment), Phase 6 (péremption). La normalisation est validée par des tests automatiques (exemples fictifs calculés à la main) ; les vraies factures Énergir/Hydro-Québec sont utiles (convention de dates, Phase 7b) mais ne bloquent pas.
 
 ---
 

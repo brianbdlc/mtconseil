@@ -65,7 +65,7 @@ Contexte d'usage : terrain (téléphone, réseau parfois faible, téléversement
 - US-32 : En tant qu'ingénieur, je veux téléverser la photo ou le PDF de la facture et la voir à côté de ma saisie (zoom et rotation), afin de recopier et vérifier les valeurs (lecture automatique reportée : Phase 7b).
 - US-33 : En tant qu'ingénieur, je veux corriger et saisir à la main une facture et la confirmer, afin que seules les données confirmées servent aux calculs ; un mois sans facture ou une valeur « n/d » reste « manquant » et n'est jamais estimé.
 - US-34 : En tant qu'ingénieur, je veux que le code calcule les totaux, moyennes, pourcentages, GES et intensités à partir des données confirmées, afin de produire la section 4.
-- US-35 : En tant qu'ingénieur, je veux les cinq tableaux et les cinq graphiques (couleurs orange gaz, bleu foncé électricité), afin d'obtenir la section 4 au style du rapport de référence.
+- US-35 : En tant qu'ingénieur, je veux les cinq tableaux et les cinq graphiques aux couleurs exactes — figures A et B : barres gris-bleu avec ligne orange (degrés-jours chauffage) et ligne verte (degrés-jours climatisation) ; figure C : barres empilées orange (gaz) et bleu foncé (électricité) avec lignes de degrés-jours violette et bleu pâle ; figure D : anneau gaz / électricité — afin d'obtenir la section 4 au style du rapport de référence.
 - US-36 : En tant qu'ingénieur, je veux les textes à modèle fixe remplis par l'app (introductions, phrases d'annonce des graphiques, paragraphes 4.3.1/4.3.2), avec avertissement si un chiffre ne correspond plus aux données, afin d'éviter les incohérences.
 - US-37 : En tant qu'ingénieur, je veux que l'IA rédige le texte d'analyse du bilan (4.3) à partir des chiffres et de mes notes, afin d'interpréter les données.
 - US-38 : En tant qu'ingénieur, je veux des avertissements non bloquants de cohérence (trou ou chevauchement entre périodes d'un même compteur, année non couverte du 1er janvier au 31 décembre, fin de période < début, coût par unité hors de l'ordinaire, nombre de compteurs ≠ description du bâtiment, valeur aberrante, total ≠ somme au-delà de la tolérance d'arrondi, pourcentages ≠ 100 %, chiffre de texte ≠ tableau), afin de repérer les erreurs.
@@ -149,7 +149,7 @@ Contexte d'usage : terrain (téléphone, réseau parfois faible, téléversement
 **À définir / à obtenir de MT Conseil (bloquant certaines parties)**
 - Cible chiffrée du temps de production (à fixer avec Luis).
 - Formules de calcul de la section 4, méthode de normalisation de la consommation, source des degrés-jours, facteurs d'émission — fournis pendant la construction (la partie Factures/section 4 en dépend).
-- Fichier Excel de normalisation de Luis, source des degrés-jours, facteurs d'émission, pouvoir calorifique d'Énergir.
+- Source des degrés-jours, facteurs d'émission, pouvoir calorifique d'Énergir. (La normalisation est validée par des tests automatiques avec des exemples fictifs dont le résultat est calculé à la main — rien à obtenir de MT Conseil pour elle.)
 - Format réel des factures (surtout des photos, parfois des PDF) — la lecture assistée (Phase 7b) doit être testée sur de vraies factures gaz naturel (Énergir) et électricité (Hydro-Québec), factures couvrant toute l'année de référence (environ 13 par source).
 - Moment exact de l'approbation par rapport aux modifications faites à la main dans Word (à définir avec Luis).
 - Modèle Word de MT Conseil (polices, couleurs, styles) et logo.
