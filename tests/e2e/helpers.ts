@@ -56,6 +56,55 @@ export async function seedCard(
   return data.id as string;
 }
 
+// Réglages énergie du dossier (année de référence + pouvoir calorifique).
+export async function setEnergySettings(
+  a: SupabaseClient,
+  projectId: string,
+  opts: { annee: number | null; pcs?: number },
+) {
+  const { error } = await a.from("energy_settings").upsert(
+    {
+      project_id: projectId,
+      annee_reference: opts.annee,
+      pouvoir_calorifique_mj_m3: opts.pcs ?? 37.89,
+    },
+    { onConflict: "project_id" },
+  );
+  if (error) throw error;
+}
+
+// Facture de test (chiffres fournis par l'appelant). Le montant av.tx est calculé comme
+// dans l'app (÷ 1,14975) pour refléter la proposition automatique.
+export async function seedFacture(
+  a: SupabaseClient,
+  projectId: string,
+  position: number,
+  f: {
+    source?: "gaz" | "elec";
+    compteur?: string;
+    debut?: string | null;
+    fin?: string | null;
+    conso?: number | null;
+    ttc?: number | null;
+    statut?: "brouillon" | "confirme";
+  },
+) {
+  const { error } = await a.from("factures").insert({
+    project_id: projectId,
+    position,
+    source: f.source ?? "gaz",
+    numero_compteur: f.compteur ?? null,
+    date_debut: f.debut ?? null,
+    date_fin: f.fin ?? null,
+    consommation: f.conso ?? null,
+    montant_ttc: f.ttc ?? null,
+    montant_avtx: f.ttc != null ? f.ttc / 1.14975 : null,
+    montant_avtx_manuel: false,
+    statut: f.statut ?? "brouillon",
+  });
+  if (error) throw error;
+}
+
 // Nettoyage : supprime les photos Storage des fiches, puis le dossier (cascade DB).
 export async function cleanupProject(a: SupabaseClient, projectId: string) {
   const { data: cards } = await a

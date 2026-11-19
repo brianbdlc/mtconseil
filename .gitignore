@@ -64,6 +64,8 @@ test-results/
 playwright-report/
 blob-report/
 tests/e2e/.auth/
+# Fixtures e2e contenant des données client réelles (loi 25) — jamais versionnées.
+tests/e2e/fixtures/*.local.json
 
 # docx render verification output
 scripts/out/

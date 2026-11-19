@@ -6,6 +6,9 @@ import { createHash } from "crypto";
 import { afficher, parseCardFields } from "@/lib/field";
 import { parseBuildingRow } from "@/lib/building";
 import { idLabels } from "@/lib/equipmentId";
+import { nombreFr, montantFr } from "@/lib/format";
+import { m3ToGj, gjToKwh, kwhToGj } from "@/lib/units";
+import type { Normalisation } from "@/lib/factures/normalize";
 
 export function batimentTexte(row: unknown): string {
   const bf = parseBuildingRow(row);
@@ -58,15 +61,48 @@ export function fichesTexte(rows: CardRow[]): string {
   return out.join("\n");
 }
 
+const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+/**
+ * Sérialise les 12 mois NORMALISÉS (conso + coût + GJ + kWh équiv.), gaz et élec —
+ * c'est cette valeur normalisée (pas les factures brutes) qui nourrit le prompt et
+ * entre dans l'empreinte de péremption. « manquant » pour les mois non couverts.
+ */
+export function facturesTexte(norm: Normalisation, pcsMjM3: number): string {
+  const L: string[] = ["# Bilan énergétique — valeurs normalisées (12 mois civils)"];
+  L.push(`Pouvoir calorifique : ${nombreFr(pcsMjM3, 2)} MJ/m³`);
+  // conso et coût « manquant » indépendamment (C3).
+  const coutTxt = (c: number | null) => (c == null ? "manquant" : `${montantFr(c)} (av.tx)`);
+  L.push("## Gaz (m³ → GJ → kWh équiv.)");
+  norm.gaz.forEach((m, i) => {
+    const consoTxt =
+      m.consommation == null
+        ? "manquant"
+        : `${nombreFr(m.consommation, 1)} m³ = ${nombreFr(m3ToGj(m.consommation, pcsMjM3), 2)} GJ = ${nombreFr(gjToKwh(m3ToGj(m.consommation, pcsMjM3)), 0)} kWh équiv.`;
+    L.push(`- ${MOIS[i]} : ${consoTxt} ; coût ${coutTxt(m.cout)}`);
+  });
+  L.push("## Électricité (kWh → GJ)");
+  norm.elec.forEach((m, i) => {
+    const consoTxt =
+      m.consommation == null
+        ? "manquant"
+        : `${nombreFr(m.consommation, 0)} kWh = ${nombreFr(kwhToGj(m.consommation), 2)} GJ`;
+    L.push(`- ${MOIS[i]} : ${consoTxt} ; coût ${coutTxt(m.cout)}`);
+  });
+  return L.join("\n");
+}
+
 /** Texte des données confirmées d'un dossier : bâtiment (si confirmé) + fiches confirmées. */
 export function sourceData(opts: {
   building: unknown | null;
   cards: CardRow[];
+  facturesTexte?: string;
 }): string {
   const parts: string[] = [];
   if (opts.building) parts.push(batimentTexte(opts.building));
   const fiches = fichesTexte(opts.cards);
   if (fiches) parts.push(fiches);
+  if (opts.facturesTexte) parts.push(opts.facturesTexte);
   return parts.join("\n\n") || "(aucune donnée confirmée)";
 }
 

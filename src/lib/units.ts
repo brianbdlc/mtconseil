@@ -9,3 +9,21 @@ export function tonnesToKw(tonnes: number): number {
 export function pi2ToM2(pi2: number): number {
   return pi2 * 0.092903;
 }
+
+// Énergie : GJ = valeur maîtresse. Gaz m³ → GJ via pouvoir calorifique (MJ/m³)
+// paramétrable ; GJ → kWh équiv. gaz = GJ × 277,7778 (JAMAIS 10,53 kWh/m³). Élec kWh → GJ.
+
+/** Gaz m³ → GJ. `mjParM3` = pouvoir calorifique (MJ/m³, paramétrable par dossier). */
+export function m3ToGj(m3: number, mjParM3: number): number {
+  return (m3 * mjParM3) / 1000;
+}
+
+/** GJ → kWh équivalents (gaz). 1 GJ = 277,7778 kWh. */
+export function gjToKwh(gj: number): number {
+  return gj * 277.7778;
+}
+
+/** Électricité kWh → GJ. 1 kWh = 3,6 MJ = 0,0036 GJ. */
+export function kwhToGj(kwh: number): number {
+  return kwh * 0.0036;
+}
