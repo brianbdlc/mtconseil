@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "for f in $(find src -name '*.test.ts' -not -path '*/docx/*'); do node --import tsx \"$f\" || exit 1; done",
     "test:e2e": "playwright test"
   },
   "dependencies": {

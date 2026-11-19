@@ -135,6 +135,38 @@ export type Database = {
           },
         ]
       }
+      energy_settings: {
+        Row: {
+          annee_reference: number | null
+          id: string
+          pouvoir_calorifique_mj_m3: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          annee_reference?: number | null
+          id?: string
+          pouvoir_calorifique_mj_m3?: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          annee_reference?: number | null
+          id?: string
+          pouvoir_calorifique_mj_m3?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_cards: {
         Row: {
           chauffage: string | null
@@ -283,6 +315,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "equipment_cards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factures: {
+        Row: {
+          consommation: number | null
+          created_at: string
+          date_debut: string | null
+          date_fin: string | null
+          fichier_path: string | null
+          fichier_type: string | null
+          id: string
+          montant_avtx: number | null
+          montant_avtx_manuel: boolean
+          montant_ttc: number | null
+          numero_compteur: string | null
+          position: number
+          project_id: string
+          puissance_appelee: number | null
+          source: string
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          consommation?: number | null
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          fichier_path?: string | null
+          fichier_type?: string | null
+          id?: string
+          montant_avtx?: number | null
+          montant_avtx_manuel?: boolean
+          montant_ttc?: number | null
+          numero_compteur?: string | null
+          position?: number
+          project_id: string
+          puissance_appelee?: number | null
+          source?: string
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          consommation?: number | null
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          fichier_path?: string | null
+          fichier_type?: string | null
+          id?: string
+          montant_avtx?: number | null
+          montant_avtx_manuel?: boolean
+          montant_ttc?: number | null
+          numero_compteur?: string | null
+          position?: number
+          project_id?: string
+          puissance_appelee?: number | null
+          source?: string
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
