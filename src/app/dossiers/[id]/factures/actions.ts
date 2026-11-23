@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { analyseFacturePdf, type FactureProposition } from "@/lib/ai/generate";
 
 const FICHIERS_BUCKET = "facture-fichiers";
 
@@ -181,6 +182,30 @@ export async function deleteFichier(
     .eq("id", factureId);
   if (error) throw error;
   revalidatePath(`/dossiers/${projectId}/factures`);
+}
+
+// Phase 7b (US-54) : lecture assistée d'une facture PDF. Télécharge le PDF côté serveur,
+// le fait transcrire par Claude, renvoie les propositions. N'écrit RIEN (transitoire, R5) :
+// le formulaire pré-remplit un brouillon que l'humain vérifie et confirme.
+export async function lireFacturePdf(
+  factureId: string,
+): Promise<{ ok: true; proposition: FactureProposition } | { ok: false; message: string }> {
+  const supabase = await client();
+  const { data: row } = await supabase
+    .from("factures")
+    .select("fichier_path, fichier_type")
+    .eq("id", factureId)
+    .maybeSingle();
+  if (!row?.fichier_path || row.fichier_type !== "pdf")
+    return { ok: false, message: "Aucun PDF à lire pour cette facture." };
+
+  const { data: file, error } = await supabase.storage
+    .from(FICHIERS_BUCKET)
+    .download(row.fichier_path);
+  if (error || !file) return { ok: false, message: "Téléchargement du PDF échoué." };
+
+  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+  return analyseFacturePdf(base64);
 }
 
 export async function deleteFacture(factureId: string, projectId: string) {

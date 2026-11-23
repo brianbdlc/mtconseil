@@ -17,6 +17,7 @@ import {
   type FacturePayload,
 } from "../actions";
 import FactureFichier from "./FactureFichier";
+import type { FactureProposition } from "@/lib/ai/generate";
 
 const LIBELLE: Record<string, string> = {
   idle: "",
@@ -56,10 +57,56 @@ export default function FactureForm({
   const [pcs, setPcs] = useState(String(initialPcs));
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  // Phase 7b : champs pré-remplis par l'IA en basse confiance (amber tant que non vérifiés).
+  const [lowConf, setLowConf] = useState<Set<keyof FormState>>(new Set());
 
   const locked = statut === "confirme";
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setF((s) => ({ ...s, [k]: v }));
+  // Édition humaine → le champ est vérifié : on retire le drapeau basse confiance.
+  function clearLow(k: keyof FormState) {
+    setLowConf((s) => {
+      if (!s.has(k)) return s;
+      const n = new Set(s);
+      n.delete(k);
+      return n;
+    });
+  }
+  function edit<K extends keyof FormState>(k: K, v: FormState[K]) {
+    set(k, v);
+    clearLow(k);
+  }
+  const champCls = (k: keyof FormState) =>
+    lowConf.has(k) ? `${inputCls} ring-1 ring-warning` : inputCls;
+
+  // Pré-remplit le brouillon depuis la proposition IA (R5 : vérification humaine ensuite).
+  function appliquerLecture(p: FactureProposition) {
+    const low = new Set<keyof FormState>();
+    const num = (v: string | null) => (v == null ? "" : v.replace(".", ","));
+    if (p.source.valeur === "gaz" || p.source.valeur === "elec") set("source", p.source.valeur);
+    if (p.numero_compteur.valeur != null) set("compteur", p.numero_compteur.valeur);
+    if (p.date_debut.valeur) set("debut", p.date_debut.valeur);
+    if (p.date_fin.valeur) set("fin", p.date_fin.valeur);
+    if (p.consommation.valeur != null) set("conso", num(p.consommation.valeur));
+    if (p.montant_ttc.valeur != null) setTtc(num(p.montant_ttc.valeur));
+    if (p.source.valeur === "elec" && p.puissance_appelee.valeur != null)
+      set("puissance", num(p.puissance_appelee.valeur));
+
+    const map: Record<string, keyof FormState> = {
+      source: "source",
+      numero_compteur: "compteur",
+      date_debut: "debut",
+      date_fin: "fin",
+      consommation: "conso",
+      montant_ttc: "ttc",
+      puissance_appelee: "puissance",
+    };
+    for (const [champ, k] of Object.entries(map)) {
+      const c = p[champ as keyof FactureProposition];
+      if (c.valeur != null && c.confiance === "basse") low.add(k);
+    }
+    setLowConf(low);
+  }
 
   // montant_avtx proposé = ttc ÷ taux, tant que non corrigé (patron tonnes→kW).
   function setTtc(v: string) {
@@ -138,8 +185,8 @@ export default function FactureForm({
           <select
             value={f.source}
             disabled={locked}
-            onChange={(e) => set("source", e.target.value as "gaz" | "elec")}
-            className="h-11 rounded-md border border-n200 bg-n0 px-3 text-navy outline-none focus:border-navy disabled:bg-n50"
+            onChange={(e) => edit("source", e.target.value as "gaz" | "elec")}
+            className={`h-11 rounded-md border border-n200 bg-n0 px-3 text-navy outline-none focus:border-navy disabled:bg-n50 ${lowConf.has("source") ? "ring-1 ring-warning" : ""}`}
           >
             <option value="gaz">Gaz naturel (m³)</option>
             <option value="elec">Électricité (kWh)</option>
@@ -147,20 +194,20 @@ export default function FactureForm({
         </label>
 
         <Champ label="Compteur">
-          <input value={f.compteur} disabled={locked} onChange={(e) => set("compteur", e.target.value)} className={inputCls} />
+          <input value={f.compteur} disabled={locked} onChange={(e) => edit("compteur", e.target.value)} className={champCls("compteur")} />
         </Champ>
 
         <div className="grid grid-cols-2 gap-3">
           <Champ label="Début de période">
-            <input type="date" value={f.debut} disabled={locked} onChange={(e) => set("debut", e.target.value)} className={inputCls} />
+            <input type="date" value={f.debut} disabled={locked} onChange={(e) => edit("debut", e.target.value)} className={champCls("debut")} />
           </Champ>
           <Champ label="Fin de période">
-            <input type="date" value={f.fin} disabled={locked} onChange={(e) => set("fin", e.target.value)} className={inputCls} />
+            <input type="date" value={f.fin} disabled={locked} onChange={(e) => edit("fin", e.target.value)} className={champCls("fin")} />
           </Champ>
         </div>
 
         <Champ label={f.source === "gaz" ? "Consommation (m³)" : "Consommation (kWh)"}>
-          <input value={f.conso} inputMode="decimal" disabled={locked} onChange={(e) => set("conso", e.target.value)} className={inputCls} />
+          <input value={f.conso} inputMode="decimal" disabled={locked} onChange={(e) => edit("conso", e.target.value)} className={champCls("conso")} />
         </Champ>
 
         {/* Gaz : PCS dossier-level + aperçu live GJ / kWh équiv. */}
@@ -191,7 +238,7 @@ export default function FactureForm({
         )}
 
         <Champ label="Montant taxes incluses ($)">
-          <input value={f.ttc} inputMode="decimal" disabled={locked} onChange={(e) => setTtc(e.target.value)} className={inputCls} />
+          <input value={f.ttc} inputMode="decimal" disabled={locked} onChange={(e) => { setTtc(e.target.value); clearLow("ttc"); }} className={champCls("ttc")} />
         </Champ>
 
         <Champ label="Montant avant taxes ($) — proposé = total ÷ 1,14975">
@@ -213,7 +260,7 @@ export default function FactureForm({
 
         {f.source === "elec" && (
           <Champ label="Puissance appelée (kW)">
-            <input value={f.puissance} inputMode="decimal" disabled={locked} onChange={(e) => set("puissance", e.target.value)} className={inputCls} />
+            <input value={f.puissance} inputMode="decimal" disabled={locked} onChange={(e) => edit("puissance", e.target.value)} className={champCls("puissance")} />
           </Champ>
         )}
 
@@ -254,6 +301,7 @@ export default function FactureForm({
           path={f.fichierPath}
           type={f.fichierType}
           onChange={(path, type) => { set("fichierPath", path); set("fichierType", type); }}
+          onLecture={appliquerLecture}
         />
       </aside>
     </div>
