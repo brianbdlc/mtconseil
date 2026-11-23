@@ -218,7 +218,7 @@ export async function deleteFacture(factureId: string, projectId: string) {
 // Réglages énergie du dossier (1 ligne, conflit project_id). PCS + année de référence.
 export async function saveEnergySettings(
   projectId: string,
-  values: { pouvoir_calorifique_mj_m3: number; annee_reference: number | null },
+  values: { pouvoir_calorifique_mj_m3: number; annee_reference: number | null; titre_apercu: string | null },
 ) {
   const supabase = await client();
   const { error } = await supabase.from("energy_settings").upsert(

@@ -16,7 +16,7 @@ export default async function FacturesPage({
   const [{ data: settings }, { data: factures }] = await Promise.all([
     supabase
       .from("energy_settings")
-      .select("pouvoir_calorifique_mj_m3, annee_reference")
+      .select("pouvoir_calorifique_mj_m3, annee_reference, titre_apercu")
       .eq("project_id", id)
       .maybeSingle(),
     supabase
@@ -32,6 +32,7 @@ export default async function FacturesPage({
       initialRows={(factures ?? []) as FactureRow[]}
       initialPcs={settings?.pouvoir_calorifique_mj_m3 ?? PCS_DEFAUT_MJ_M3}
       initialAnnee={settings?.annee_reference ?? null}
+      initialTitre={settings?.titre_apercu ?? ""}
     />
   );
 }
