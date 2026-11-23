@@ -141,6 +141,7 @@ export type Database = {
           id: string
           pouvoir_calorifique_mj_m3: number
           project_id: string
+          titre_apercu: string | null
           updated_at: string
         }
         Insert: {
@@ -148,6 +149,7 @@ export type Database = {
           id?: string
           pouvoir_calorifique_mj_m3?: number
           project_id: string
+          titre_apercu?: string | null
           updated_at?: string
         }
         Update: {
@@ -155,6 +157,7 @@ export type Database = {
           id?: string
           pouvoir_calorifique_mj_m3?: number
           project_id?: string
+          titre_apercu?: string | null
           updated_at?: string
         }
         Relationships: [

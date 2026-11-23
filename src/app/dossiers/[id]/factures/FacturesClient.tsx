@@ -84,35 +84,39 @@ export default function FacturesClient({
   initialRows,
   initialPcs,
   initialAnnee,
+  initialTitre,
 }: {
   projectId: string;
   initialRows: FactureRow[];
   initialPcs: number;
   initialAnnee: number | null;
+  initialTitre: string;
 }) {
   const [rows, setRows] = useState<EditRow[]>(initialRows.map(fromDb));
   const [pcs, setPcs] = useState(String(initialPcs));
   const [annee, setAnnee] = useState(initialAnnee != null ? String(initialAnnee) : "");
+  const [titre, setTitre] = useState(initialTitre);
   const [adding, setAdding] = useState(false);
 
   const anneeNum = /^\d{4}$/.test(annee) ? +annee : null;
   const pcsNum = parseFloat(pcs.replace(",", ".")) || PCS_DEFAUT_MJ_M3;
 
   // --- Autosave réglages (energy_settings) ---------------------------------
-  const settingsSaved = useRef(JSON.stringify({ pcs: initialPcs, annee: initialAnnee }));
+  const settingsSaved = useRef(JSON.stringify({ pcs: initialPcs, annee: initialAnnee, titre: initialTitre }));
   useEffect(() => {
     const payload = {
       pouvoir_calorifique_mj_m3: parseFloat(pcs.replace(",", ".")) || PCS_DEFAUT_MJ_M3,
       annee_reference: /^\d{4}$/.test(annee) ? +annee : null,
+      titre_apercu: titre.trim() || null,
     };
-    const ser = JSON.stringify({ pcs: payload.pouvoir_calorifique_mj_m3, annee: payload.annee_reference });
+    const ser = JSON.stringify({ pcs: payload.pouvoir_calorifique_mj_m3, annee: payload.annee_reference, titre: payload.titre_apercu });
     if (ser === settingsSaved.current) return;
     const t = setTimeout(async () => {
       await saveEnergySettings(projectId, payload);
       settingsSaved.current = ser;
     }, 800);
     return () => clearTimeout(t);
-  }, [pcs, annee, projectId]);
+  }, [pcs, annee, titre, projectId]);
 
   // --- Autosave par ligne ---------------------------------------------------
   const rowSaved = useRef<Record<string, string>>({});
@@ -272,7 +276,7 @@ export default function FacturesClient({
       )}
 
       {/* Aperçu 12 mois normalisés */}
-      <Apercu norm={norm} annee={anneeNum} pcs={pcsNum} />
+      <Apercu norm={norm} annee={anneeNum} pcs={pcsNum} titre={titre} onTitre={setTitre} />
     </div>
   );
 }
@@ -376,7 +380,7 @@ function FactureBloc({
 }
 
 // ---------------------------------------------------------------------------
-function Apercu({ norm, annee, pcs }: { norm: Normalisation | null; annee: number | null; pcs: number }) {
+function Apercu({ norm, annee, pcs, titre, onTitre }: { norm: Normalisation | null; annee: number | null; pcs: number; titre: string; onTitre: (v: string) => void }) {
   if (annee == null)
     return (
       <section className="flex flex-col gap-2">
@@ -384,6 +388,8 @@ function Apercu({ norm, annee, pcs }: { norm: Normalisation | null; annee: numbe
         <p className="text-sm text-n500">Choisissez une année de référence pour voir la normalisation.</p>
       </section>
     );
+
+  const titreDefaut = `Aperçu — 12 mois normalisés (${annee})`;
 
   const n = norm!;
   // Totaux annuels : « incomplet » si au moins un mois est manquant (jamais de somme
@@ -399,13 +405,19 @@ function Apercu({ norm, annee, pcs }: { norm: Normalisation | null; annee: numbe
 
   return (
     <section className="flex flex-col gap-2" data-apercu>
-      <h3 className="font-display text-base font-bold text-navy">Aperçu — 12 mois normalisés ({annee})</h3>
+      <input
+        aria-label="Titre de l'aperçu"
+        value={titre}
+        placeholder={titreDefaut}
+        onChange={(e) => onTitre(e.target.value)}
+        className="w-full border-b border-transparent bg-transparent font-display text-base font-bold text-navy outline-none placeholder:text-navy hover:border-n200 focus:border-navy"
+      />
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-xs whitespace-nowrap tabular-nums">
           <thead>
             <tr className="bg-n50 text-left text-navy">
-              {["Mois","Gaz (m³)","Gaz (GJ)","Gaz (kWh éq.)","Gaz coût","Élec (kWh)","Élec (GJ)","Élec coût"].map((h) => (
-                <th key={h} className="border border-n200 px-2 py-1 font-medium">{h}</th>
+              {["Mois","Gaz (m³)","Gaz (GJ)","Gaz (kWh éq.)","Coût (av.tx)","Élec (kWh)","Élec (GJ)","Coût (av.tx)"].map((h, i) => (
+                <th key={i} className="border border-n200 px-2 py-1 font-medium">{h}</th>
               ))}
             </tr>
           </thead>
