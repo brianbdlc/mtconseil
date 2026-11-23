@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { setFichier, deleteFichier } from "../actions";
+import { setFichier, deleteFichier, lireFacturePdf } from "../actions";
+import type { FactureProposition } from "@/lib/ai/generate";
 
 const BUCKET = "facture-fichiers";
 
@@ -16,6 +17,7 @@ export default function FactureFichier({
   path,
   type,
   onChange,
+  onLecture,
 }: {
   factureId: string;
   projectId: string;
@@ -23,6 +25,7 @@ export default function FactureFichier({
   path: string | null;
   type: string | null;
   onChange: (path: string | null, type: string | null) => void;
+  onLecture: (proposition: FactureProposition) => void;
 }) {
   const [url, setUrl] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -30,6 +33,16 @@ export default function FactureFichier({
   const [zoom, setZoom] = useState(1);
   const [rot, setRot] = useState(0);
   const [supabase] = useState(createClient);
+  const [lecturePending, startLecture] = useTransition();
+
+  function lire() {
+    setErr("");
+    startLecture(async () => {
+      const r = await lireFacturePdf(factureId);
+      if (r.ok) onLecture(r.proposition);
+      else setErr(r.message);
+    });
+  }
 
   useEffect(() => {
     if (!path) return; // le rendu masque l'aperçu quand path est null
@@ -98,6 +111,16 @@ export default function FactureFichier({
           </button>
         )}
       </div>
+      {!disabled && path && type === "pdf" && (
+        <button
+          type="button"
+          onClick={lire}
+          disabled={lecturePending}
+          className="h-9 self-start rounded-md bg-amber px-3 text-sm font-medium text-navy hover:bg-amber-hover disabled:opacity-50"
+        >
+          {lecturePending ? "Lecture de la facture…" : "Lire la facture (IA)"}
+        </button>
+      )}
       {err && <p className="text-xs text-error">{err}</p>}
 
       {!path && <p className="text-xs text-n500">Aucun fichier. Téléversez la facture pour la recopier.</p>}
